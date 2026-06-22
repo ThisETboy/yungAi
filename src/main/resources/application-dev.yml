@@ -1,0 +1,131 @@
+# ===================== Development Profile =====================
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  # DataSource
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/xuexi?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: root
+
+  # Redis
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: ""
+      database: 0
+
+  # RabbitMQ
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
+  # Elasticsearch
+  elasticsearch:
+    uris: http://localhost:9200
+
+  # Servlet
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+  # Integration
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.integration.IntegrationAutoConfiguration
+
+# MyBatis-Plus
+mybatis-plus:
+  mapper-locations: classpath:mapper/**/*.xml
+  type-aliases-package: com.example.xuexi.module.**.entity
+  global-config:
+    db-config:
+      id-type: ASSIGN_ID
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+    banner: false
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# Knife4j / Swagger
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
+
+# JWT
+jwt:
+  secret: dev-a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6secret
+  expiration: 7200000
+  refresh-expiration: 604800000
+
+# AI Adapter
+ai:
+  default-adapter: ollama
+  adapters:
+    ollama:
+      base-url: http://localhost:11434
+      timeout: 60000
+    dashscope:
+      api-key: ${AI_DASHSCOPE_KEY:sk-placeholder}
+      base-url: https://dashscope.aliyuncs.com/api/v1
+    anthropic:
+      api-key: ${AI_ANTHROPIC_KEY:sk-ant-placeholder}
+      base-url: https://api.anthropic.com
+      version: "2023-06-01"
+    deepseek:
+      api-key: ${AI_DEEPSEEK_KEY:sk-placeholder}
+      base-url: https://api.deepseek.com
+  models:
+    ollama: qwen2.5:7b
+    dashscope: qwen-plus
+    anthropic: claude-sonnet-4-20250514
+    deepseek: deepseek-chat
+
+# Rate Limiting
+rate-limit:
+  enabled: true
+  capacity: 60
+  window-seconds: 60
+
+# Protocol (MQTT & TCP)
+protocol:
+  default: mqtt
+  mqtt:
+    broker-url: tcp://localhost:1883
+    client-id: xuexi-broker
+    username: ""
+    password: ""
+    qos: 1
+    clean-session: true
+    keep-alive: 60
+    max-in-flight: 10
+    auto-reconnect: true
+  tcp:
+    host: 0.0.0.0
+    port: 9999
+    backlog: 1024
+    child:
+      tcp-no-delay: true
+      keep-alive: true
+    max-frame-length: 65536
+
+# Logging
+logging:
+  level:
+    com.example.xuexi: debug
+    org.springframework.security: debug

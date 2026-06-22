@@ -1,0 +1,44 @@
+# ===================== Test Profile =====================
+spring:
+  config:
+    activate:
+      on-profile: test
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/xuexi_test?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: root
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
+  elasticsearch:
+    uris: http://localhost:9200
+
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+knife4j:
+  enable: true
+
+jwt:
+  secret: test-secret-key-at-least-256-bits-for-testing-purposes-only
+  expiration: 3600000
+  refresh-expiration: 86400000
+
+ai:
+  default-adapter: ollama
+
+logging:
+  level:
+    com.example.xuexi: debug

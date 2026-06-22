@@ -1,0 +1,76 @@
+# ===================== Production Profile =====================
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:xuexi}?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=true&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URI:http://localhost:9200}
+
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.integration.IntegrationAutoConfiguration
+
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
+
+knife4j:
+  enable: false
+
+jwt:
+  secret: ${JWT_SECRET:change-this-to-a-strong-secret-in-production}
+  expiration: 7200000
+  refresh-expiration: 604800000
+
+ai:
+  default-adapter: ${AI_DEFAULT_ADAPTER:ollama}
+
+protocol:
+  default: ${PROTOCOL_DEFAULT:mqtt}
+  mqtt:
+    broker-url: ${MQTT_BROKER_URL:tcp://localhost:1883}
+    client-id: xuexi-broker
+    username: ${MQTT_USERNAME:}
+    password: ${MQTT_PASSWORD:}
+    qos: 1
+    clean-session: true
+    keep-alive: 60
+    max-in-flight: 10
+    auto-reconnect: true
+  tcp:
+    host: ${TCP_HOST:0.0.0.0}
+    port: ${TCP_PORT:9999}
+    backlog: 1024
+    child:
+      tcp-no-delay: true
+      keep-alive: true
+    max-frame-length: 65536
+
+rate-limit:
+  enabled: true
+  capacity: 100
+  window-seconds: 60
+
+logging:
+  level:
+    com.example.xuexi: info
+    org.springframework.security: warn

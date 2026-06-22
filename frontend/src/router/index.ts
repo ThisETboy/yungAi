@@ -1,0 +1,57 @@
+import { defineRouter } from 'vue-router'
+import type { RouteRecordRaw } from 'vue-router'
+import { getToken } from '@/utils/auth'
+import { setupRouter } from './dynamic'
+
+const constantRoutes: RouteRecordRaw[] = [
+  {
+    path: '/login',
+    name: 'Login',
+    component: () => import('@/views/login/Login.vue'),
+    meta: { title: '登录', public: true },
+  },
+  {
+    path: '/',
+    name: 'Layout',
+    component: () => import('@/layouts/DefaultLayout.vue'),
+    redirect: '/dashboard',
+    children: [
+      {
+        path: 'dashboard',
+        name: 'Dashboard',
+        component: () => import('@/views/dashboard/Dashboard.vue'),
+        meta: { title: '首页' },
+      },
+    ],
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: () => import('@/views/login/Login.vue'),
+  },
+]
+
+const router = defineRouter({
+  routes: constantRoutes,
+  history: (window as any).createWebHistory(),
+})
+
+router.beforeEach(async (to: any, _from: any, next: any) => {
+  if (to.meta.public) {
+    next()
+    return
+  }
+  const token = getToken()
+  if (!token) {
+    next('/login')
+    return
+  }
+  try {
+    await setupRouter(router)
+    next()
+  } catch {
+    next('/login')
+  }
+})
+
+export default router

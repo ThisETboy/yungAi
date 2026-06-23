@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
-import { getUserInfo } from '@/api/auth'
-import { getToken } from '@/utils/auth'
+import { getUserInfo, login as loginApi } from '@/api/auth'
+import { getToken, setToken, removeToken } from '@/utils/auth'
+import type { UserInfoFromAuth } from '@/types/api'
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -13,23 +14,19 @@ export const useUserStore = defineStore('user', {
 
   actions: {
     async login(username: string, password: string) {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      })
-      const data = await res.json()
-      if (data.code === 200) {
-        this.token = data.data.accessToken
-        localStorage.setItem('token', this.token)
+      try {
+        const res = await loginApi({ username, password })
+        this.token = res.accessToken
+        setToken(this.token)
         return true
+      } catch {
+        return false
       }
-      return false
     },
 
     async fetchUserInfo() {
       try {
-        const res = await getUserInfo()
+        const res = await getUserInfo() as UserInfoFromAuth
         this.username = res.username
         this.roles = res.roles || []
         this.permissions = res.permissions || []
@@ -46,7 +43,7 @@ export const useUserStore = defineStore('user', {
       this.roles = []
       this.permissions = []
       this.menus = []
-      localStorage.removeItem('token')
+      removeToken()
     },
   },
 })

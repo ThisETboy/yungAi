@@ -1,9 +1,9 @@
 -- ============================================================
--- xuexi 数据库初始化脚本
+-- smarthub 数据库初始化脚本
 -- ============================================================
 
-CREATE DATABASE IF NOT EXISTS `xuexi` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE `xuexi`;
+CREATE DATABASE IF NOT EXISTS `smarthub` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE `smarthub`;
 
 -- ----------------------------
 -- 系统管理模块

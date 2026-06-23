@@ -7,7 +7,7 @@ spring:
   # DataSource
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/xuexi?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://localhost:3306/smarthub?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: root
     password: root
 
@@ -44,7 +44,7 @@ spring:
 # MyBatis-Plus
 mybatis-plus:
   mapper-locations: classpath:mapper/**/*.xml
-  type-aliases-package: com.example.xuexi.module.**.entity
+  type-aliases-package: com.example.smarthub.module.**.entity
   global-config:
     db-config:
       id-type: ASSIGN_ID
@@ -107,7 +107,7 @@ protocol:
   default: mqtt
   mqtt:
     broker-url: tcp://localhost:1883
-    client-id: xuexi-broker
+    client-id: smarthub-broker
     username: ""
     password: ""
     qos: 1
@@ -127,5 +127,5 @@ protocol:
 # Logging
 logging:
   level:
-    com.example.xuexi: debug
+    com.example.smarthub: debug
     org.springframework.security: debug

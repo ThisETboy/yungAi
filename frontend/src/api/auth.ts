@@ -1,5 +1,5 @@
 import request from './request'
-import type { LoginRequest, LoginResponse, UserInfo } from '@/types/api'
+import type { LoginRequest, LoginResponse, UserInfoFromAuth } from '@/types/api'
 
 export function login(data: LoginRequest) {
   return request.post<any, LoginResponse>('/auth/login', data)
@@ -14,5 +14,5 @@ export function refreshToken() {
 }
 
 export function getUserInfo() {
-  return request.get<any, UserInfo>('/auth/info')
+  return request.get<any, UserInfoFromAuth>('/auth/info')
 }

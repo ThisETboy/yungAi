@@ -1,7 +1,7 @@
 -- ============================================================
--- xuexi 种子数据
+-- smarthub 种子数据
 -- ============================================================
-USE `xuexi`;
+USE `smarthub`;
 
 -- 管理员用户 (密码: admin123, BCrypt加密)
 INSERT INTO `sys_user` (`id`, `username`, `password`, `nickname`, `email`, `status`) VALUES

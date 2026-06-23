@@ -1,7 +1,7 @@
 <template>
   <el-container style="height: 100vh">
     <el-aside width="220px" style="background-color: #304156">
-      <div class="logo">XUEXI AI</div>
+      <div class="logo">smarthub</div>
       <el-menu :default-active="activeMenu" background-color="#304156" text-color="#bfcbd9" active-text-color="#409EFF" router>
         <el-menu-item index="/dashboard">
           <el-icon><HomeFilled /></el-icon>
@@ -28,7 +28,7 @@
     </el-aside>
     <el-container>
       <el-header style="display: flex; align-items: center; justify-content: space-between; background: #fff">
-        <span>欢迎使用 xuexi AI 管理平台</span>
+        <span>欢迎使用 smarthub AI 管理平台</span>
         <el-button type="danger" size="small" @click="handleLogout">退出登录</el-button>
       </el-header>
       <el-main>

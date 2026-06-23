@@ -1,5 +1,4 @@
-import { defineRouter } from 'vue-router'
-import type { RouteRecordRaw } from 'vue-router'
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { getToken } from '@/utils/auth'
 import { setupRouter } from './dynamic'
 
@@ -31,9 +30,9 @@ const constantRoutes: RouteRecordRaw[] = [
   },
 ]
 
-const router = defineRouter({
+const router = createRouter({
+  history: createWebHistory(),
   routes: constantRoutes,
-  history: (window as any).createWebHistory(),
 })
 
 router.beforeEach(async (to: any, _from: any, next: any) => {

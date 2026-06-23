@@ -1,7 +1,6 @@
 import axios from 'axios'
-import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
+import type { AxiosInstance, AxiosResponse } from 'axios'
 import { ElMessage } from 'element-plus'
-import type { ApiResponse } from '@/types/api'
 import { getToken, removeToken } from '@/utils/auth'
 
 const service: AxiosInstance = axios.create({
@@ -23,10 +22,10 @@ service.interceptors.request.use(
 
 // Response interceptor: unwrap response envelope
 service.interceptors.response.use(
-  (response: AxiosResponse<ApiResponse>) => {
+  (response: AxiosResponse) => {
     const { code, message, data } = response.data
     if (code === 200) {
-      return data as any
+      return data
     }
     ElMessage.error(message || '请求失败')
     return Promise.reject(new Error(message))

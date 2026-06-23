@@ -1,5 +1,5 @@
 <template>
-  <div style="padding: 20px">
+  <div>
     <h2>AI 聊天</h2>
     <el-alert title="AI 聊天界面 - 待实现 SSE 流式响应" type="info" :closable="false" style="margin-bottom: 20px" />
     <div class="chat-box">
@@ -12,14 +12,11 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { sendChatSSE } from '@/api/ai'
-
 const input = ref('')
 
 async function sendMessage() {
   if (!input.value.trim()) return
   console.log('Sending:', input.value)
-  // TODO: Implement SSE streaming
   input.value = ''
 }
 </script>

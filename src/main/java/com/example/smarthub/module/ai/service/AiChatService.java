@@ -33,4 +33,11 @@ public interface AiChatService {
      * 删除会话
      */
     void deleteConversation(Long conversationId, Long userId);
+
+    /**
+     * 获取会话的历史消息（用于加载上下文）
+     * @param conversationId 会话ID
+     * @param limit 最近 N 条消息（默认 20）
+     */
+    java.util.List<?> getMessages(Long conversationId, int limit);
 }

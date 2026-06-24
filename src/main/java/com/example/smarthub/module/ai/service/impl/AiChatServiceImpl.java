@@ -78,12 +78,18 @@ public class AiChatServiceImpl implements AiChatService {
                     return;
                 }
 
-                // 3. 确定系统提示词
+                // 3. 加载历史消息作为上下文（如果有会话ID）
                 String systemPrompt = reqCopy.getSystemPrompt() != null
                         ? reqCopy.getSystemPrompt()
                         : DEFAULT_SYSTEM_PROMPT;
 
                 String model = reqCopy.getModelId() != null ? String.valueOf(reqCopy.getModelId()) : "default";
+
+                // 如果有会话ID，加载最近 10 条消息作为上下文
+                String contextMessages = "";
+                if (reqCopy.getConversationId() != null) {
+                    contextMessages = loadContextMessages(reqCopy.getConversationId(), 10);
+                }
 
                 // 4. 保存用户消息到数据库
                 final Long convId = reqCopy.getConversationId();
@@ -97,7 +103,11 @@ public class AiChatServiceImpl implements AiChatService {
                 AtomicReference<String> fullReply = new AtomicReference<>("");
 
                 // 6. 调用适配器流式聊天，订阅 Flux 并将每个 chunk 推送到前端
-                adapter.chatStream(model, systemPrompt, reqCopy.getMessage())
+                // 将历史消息拼接到用户消息前面，作为上下文
+                String fullMessage = contextMessages.isEmpty()
+                        ? reqCopy.getMessage()
+                        : contextMessages + "\n\n" + reqCopy.getMessage();
+                adapter.chatStream(model, systemPrompt, fullMessage)
                         .doOnNext(chunk -> {
                             fullReply.updateAndGet(existing -> existing + chunk);
                         })
@@ -183,6 +193,20 @@ public class AiChatServiceImpl implements AiChatService {
         conversationMapper.deleteById(conversationId);
     }
 
+    /**
+     * 获取会话的历史消息（最近 N 条）
+     * 用于加载对话上下文
+     */
+    @Override
+    public List<?> getMessages(Long conversationId, int limit) {
+        return messageMapper.selectList(
+                new LambdaQueryWrapper<AiMessage>()
+                        .eq(AiMessage::getConversationId, conversationId)
+                        .orderByAsc(AiMessage::getCreateTime)
+                        .last("LIMIT " + Math.min(limit, 50))
+        );
+    }
+
     /** 保存用户消息到数据库 */
     private void saveUserMessage(Long conversationId, String content, String model) {
         try {
@@ -208,6 +232,31 @@ public class AiChatServiceImpl implements AiChatService {
             messageMapper.insert(message);
         } catch (Exception e) {
             log.warn("Failed to save assistant message: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * 加载会话历史消息作为上下文
+     * 格式: "user: xxx\nassistant: xxx\nuser: xxx\n..."
+     */
+    private String loadContextMessages(Long conversationId, int limit) {
+        try {
+            List<?> messages = messageMapper.selectList(
+                    new LambdaQueryWrapper<AiMessage>()
+                            .eq(AiMessage::getConversationId, conversationId)
+                            .orderByAsc(AiMessage::getCreateTime)
+                            .last("LIMIT " + Math.min(limit, 50))
+            );
+            StringBuilder sb = new StringBuilder();
+            for (Object msg : messages) {
+                if (msg instanceof AiMessage am) {
+                    sb.append(am.getRole()).append(": ").append(am.getContent()).append("\n");
+                }
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            log.warn("Failed to load context messages: {}", e.getMessage());
+            return "";
         }
     }
 }

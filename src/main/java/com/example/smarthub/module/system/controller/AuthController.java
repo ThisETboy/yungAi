@@ -1,5 +1,6 @@
 package com.example.smarthub.module.system.controller;
 
+import com.example.smarthub.common.annotation.RateLimit;
 import com.example.smarthub.common.response.R;
 import com.example.smarthub.common.util.JwtUtil;
 import com.example.smarthub.module.system.dto.LoginRequest;
@@ -49,6 +50,7 @@ public class AuthController {
      */
     @PostMapping("/login")
     @Operation(summary = "用户登录")
+    @RateLimit(key = "login", capacity = 10, windowSeconds = 60, expression = "#request.remoteAddr")
     public R<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));

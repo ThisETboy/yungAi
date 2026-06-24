@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Logback 日志配置 — 按模块分文件、按日期+大小分割
+    支持 dev/test/prod 三个环境，日志路径随操作系统自适应
+
+    日志文件结构：
+    logs/
+    ├── smarthub.log              # 应用主日志（INFO 及以上）
+    ├── smarthub-error.log        # 错误日志（ERROR 及以上，单独文件）
+    ├── system.log                # 系统模块日志
+    ├── system-error.log
+    ├── ai.log                    # AI 模块日志
+    ├── ai-error.log
+    ├── protocol.log              # 协议模块日志
+    ├── protocol-error.log
+    └── request.log               # 请求日志（AOP 切面记录）
+-->
+<configuration scan="true" scanPeriod="30 seconds">
+
+    <!-- 日志根目录：通过 JVM 参数 -DLOG_PATH=/path/to/logs 可覆盖，默认使用用户目录 -->
+    <property name="LOG_BASE_DIR" value="${LOG_PATH:-./logs}" />
+    <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n" />
+
+    <!-- ==================== Console Appender ==================== -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- ==================== Rolling File: 主日志 ==================== -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_BASE_DIR}/smarthub.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!-- 按天分割，超过 100MB 也分割 -->
+            <fileNamePattern>${LOG_BASE_DIR}/smarthub.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <!-- 保留 30 天 -->
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>3GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- ==================== Rolling File: 错误日志（所有模块） ==================== -->
+    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_BASE_DIR}/smarthub-error.log</file>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_BASE_DIR}/smarthub-error.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>2GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- ==================== 按模块分文件 ==================== -->
+
+    <!-- 系统模块日志 -->
+    <appender name="SYSTEM_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_BASE_DIR}/system.log</file>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>DEBUG</level>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_BASE_DIR}/system.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <appender name="SYSTEM_ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_BASE_DIR}/system-error.log</file>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_BASE_DIR}/system-error.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>500MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- AI 模块日志 -->
+    <appender name="AI_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_BASE_DIR}/ai.log</file>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>DEBUG</level>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_BASE_DIR}/ai.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <appender name="AI_ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_BASE_DIR}/ai-error.log</file>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_BASE_DIR}/ai-error.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>500MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- 协议模块日志 -->
+    <appender name="PROTOCOL_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_BASE_DIR}/protocol.log</file>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>DEBUG</level>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_BASE_DIR}/protocol.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <appender name="PROTOCOL_ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_BASE_DIR}/protocol-error.log</file>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_BASE_DIR}/protocol-error.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>500MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- 请求日志（AOP 切面记录） -->
+    <appender name="REQUEST_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_BASE_DIR}/request.log</file>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>INFO</level>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_BASE_DIR}/request.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{20} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- ==================== 模块 Logger ==================== -->
+
+    <!-- 系统模块 -->
+    <logger name="com.example.smarthub.module.system" level="DEBUG" additivity="false">
+        <appender-ref ref="SYSTEM_FILE"/>
+        <appender-ref ref="SYSTEM_ERROR_FILE"/>
+    </logger>
+
+    <!-- AI 模块 -->
+    <logger name="com.example.smarthub.module.ai" level="DEBUG" additivity="false">
+        <appender-ref ref="AI_FILE"/>
+        <appender-ref ref="AI_ERROR_FILE"/>
+    </logger>
+
+    <!-- 协议模块 -->
+    <logger name="com.example.smarthub.module.protocol" level="DEBUG" additivity="false">
+        <appender-ref ref="PROTOCOL_FILE"/>
+        <appender-ref ref="PROTOCOL_ERROR_FILE"/>
+    </logger>
+
+    <!-- 请求日志（AOP 切面专用 logger，只写 request.log） -->
+    <logger name="REQUEST_LOGGER" level="INFO" additivity="false">
+        <appender-ref ref="REQUEST_FILE"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
+    <!-- ==================== Root Logger ==================== -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+        <appender-ref ref="ERROR_FILE"/>
+    </root>
+
+    <!-- ==================== 环境差异化配置 ==================== -->
+
+    <!-- 开发环境：额外输出 SQL 日志 -->
+    <springProfile name="dev">
+        <logger name="com.example.smarthub" level="DEBUG"/>
+        <logger name="org.springframework.security" level="DEBUG"/>
+        <logger name="org.mybatis" level="DEBUG"/>
+    </springProfile>
+
+    <!-- 测试环境 -->
+    <springProfile name="test">
+        <logger name="com.example.smarthub" level="DEBUG"/>
+    </springProfile>
+
+    <!-- 生产环境：降低日志级别，减少 IO -->
+    <springProfile name="prod">
+        <logger name="com.example.smarthub" level="WARN"/>
+        <logger name="org.springframework.security" level="WARN"/>
+        <!-- 生产环境关闭 MyBatis SQL 日志 -->
+        <logger name="org.mybatis" level="WARN"/>
+    </springProfile>
+
+</configuration>

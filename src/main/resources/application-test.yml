@@ -1,44 +1,58 @@
-# ===================== Test Profile =====================
+# ============================================================
+# 测试环境配置 (test)
+# 适用场景：测试环境 / QA 验证
+# 配置介于 dev 和 prod 之间：保留 SQL 日志但关闭部分中间件
+# ============================================================
+
 spring:
   config:
     activate:
       on-profile: test
 
+  # ---- 数据库连接（独立测试库）----
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/smarthub_test?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: root
     password: root
 
+  # ---- Redis ----
   data:
     redis:
       host: localhost
       port: 6379
 
+  # ---- RabbitMQ ----
   rabbitmq:
     host: localhost
     port: 5672
     username: guest
     password: guest
 
+  # ---- Elasticsearch ----
   elasticsearch:
     uris: http://localhost:9200
 
+# ---- MyBatis-Plus（测试环境保留 SQL 日志）----
 mybatis-plus:
   configuration:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
+# ---- Knife4j（测试环境开启 API 文档）----
 knife4j:
   enable: true
 
+# ---- JWT（使用短过期时间，方便测试）----
 jwt:
   secret: test-secret-key-at-least-256-bits-for-testing-purposes-only
-  expiration: 3600000
-  refresh-expiration: 86400000
+  expiration: 3600000              # Access Token 过期时间：1 小时（测试环境缩短）
+  refresh-expiration: 86400000     # Refresh Token 过期时间：1 天
 
+# ---- AI 模型配置 ----
 ai:
   default-adapter: ollama
 
+# ---- 日志级别 ----
 logging:
   level:
     com.example.smarthub: debug

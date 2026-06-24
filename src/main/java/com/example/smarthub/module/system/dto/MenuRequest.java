@@ -4,6 +4,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+/**
+ * 菜单创建/更新请求 DTO
+ */
 @Data
 @Schema(description = "菜单创建/更新请求")
 public class MenuRequest {

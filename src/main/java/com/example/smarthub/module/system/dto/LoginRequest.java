@@ -5,6 +5,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+/**
+ * 登录请求 DTO
+ */
 @Data
 @Schema(description = "登录请求")
 public class LoginRequest {

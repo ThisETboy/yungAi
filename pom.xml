@@ -130,6 +130,12 @@
             <version>${velocity.version}</version>
         </dependency>
 
+        <!-- AOP (请求日志切面) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+
         <!-- Protocol: TCP (Netty) -->
         <dependency>
             <groupId>io.netty</groupId>

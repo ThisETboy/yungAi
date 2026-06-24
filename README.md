@@ -1,351 +1,323 @@
-# smarthub - 企业级 AI 智能管理平台
+# SmartHub — 企业级 AI 智能管理平台
 
-## 项目简介
+> 基于 Spring Boot 3.4 + Vue 3 的全栈智能管理平台，集成多 AI 提供商、IoT 设备协议适配、动态 RBAC 权限管理。
 
-一个集成了 AI 能力和多协议接入的企业级后台管理系统。支持 AI 智能问答（SSE 流式响应）、RBAC 权限管理、MQTT/TCP 协议接入。
+## 📋 目录
+
+- [技术栈](#技术栈)
+- [项目结构](#项目结构)
+- [快速开始](#快速开始)
+- [数据库初始化](#数据库初始化)
+- [API 文档](#api-文档)
+- [模块说明](#模块说明)
+- [配置说明](#配置说明)
+- [日志说明](#日志说明)
+- [Docker 部署](#docker-部署)
 
 ## 技术栈
 
-| 层级 | 技术 |
-|---|---|
-| 后端 | Spring Boot 3.4.1 + Java 17 + MyBatis-Plus 3.5.7 |
-| 数据库 | MySQL 8.0 |
-| 认证 | Spring Security + JWT (HS256) |
-| AI | 策略模式 + 工厂注册 (Ollama/通义千问/Claude/DeepSeek) |
-| 协议 | 策略模式 + 工厂注册 (MQTT/TCP) |
-| 缓存 | Redis 7 (JSON 序列化) |
-| 消息队列 | RabbitMQ 3 (@EnableRabbit) |
-| 全文检索 | Elasticsearch 8.15 (WebClient) |
-| API 文档 | Knife4j 4.5 (Swagger UI) |
-| 前端 | Vue 3 + TypeScript + Element Plus + Pinia + Vite |
-| 容器化 | Docker + docker-compose |
+### 后端
 
-## 架构设计
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| Spring Boot | 3.4.1 | 核心框架 |
+| MyBatis-Plus | 3.5.7 | ORM / 分页 / 乐观锁 |
+| Spring Security 6 | - | JWT 认证 / RBAC 权限 |
+| MySQL | 8.0 | 主数据库 |
+| Redis | 7 | 缓存 |
+| RabbitMQ | 3 | 消息队列 |
+| Elasticsearch | 8.15 | 搜索引擎 |
+| Netty | 4.1.115 | TCP 协议适配 |
+| Eclipse Paho | - | MQTT 协议适配 |
+| SpringDoc / Knife4j | 2.7.0 / 4.5.0 | API 文档 |
+| Lombok | 1.18.34 | 代码简化 |
 
-### 1. AI 适配器（策略模式 + 工厂注册）
+### 前端
 
-```
-AiModelAdapter (接口)
-├── getProviderName()       → "ollama" / "dashscope" / "anthropic" / "deepseek"
-├── chatStream(request)     → SSE 流式响应
-├── chatBlocking(request)   → 阻塞响应
-└── isAvailable()           → 健康检查
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| Vue 3 | 3.5.13 | 渐进式框架 |
+| TypeScript | 5.7 | 类型安全 |
+| Vite | 6.1 | 构建工具 |
+| Element Plus | 2.9 | UI 组件库 |
+| Pinia | 2.3 | 状态管理 |
+| Vue Router | 4.5 | 路由管理 |
+| Axios | 1.7 | HTTP 客户端 |
+| markdown-it | 14.1 | Markdown 渲染 |
 
-AiAdapterFactory (自动注册中心)
-├── @PostConstruct 扫描所有 AiModelAdapter 实现
-├── ConcurrentHashMap 缓存
-└── getAdapter(providerName) / getDefaultAdapter()
-```
-
-| 适配器 | 协议端点 | 认证方式 | 流式解析 |
-|---|---|---|---|
-| Ollama | POST `/api/chat` | 无 | newline-delimited JSON |
-| DashScope | POST `/api/v1/services/aigc/text-generation/generation` | Bearer Token | SSE `data:` 前缀 |
-| Anthropic | POST `/v1/messages` | x-api-key Header | event:data SSE |
-| DeepSeek | POST `/v1/chat/completions` | Bearer Token | OpenAI 兼容 |
-
-### 2. 协议适配器（策略模式 + 工厂注册）
+### 基础设施
 
 ```
-ProtocolAdapter (接口)
-├── getProtocolName()     → "mqtt" / "tcp"
-├── start()               → 启动监听/连接
-├── stop()                → 停止
-├── send(deviceId, data)  → 发送数据
-└── isAlive(deviceId)     → 心跳检测
-
-ProtocolAdapterFactory (自动注册中心)
-```
-
-| 适配器 | 框架 | 关键特性 |
-|---|---|---|
-| MQTT | Eclipse Paho | MqttCallback (connectionLost/messageArrived/deliveryComplete)、自动重连、QoS |
-| TCP | Netty | ServerBootstrap + Boss/Worker Group + ChannelPipeline + TcpServerHandler |
-
-### 3. 认证授权流程
-
-1. 用户登录 → `AuthController.login()` → `AuthenticationManager` 验证 → 签发 JWT
-2. 返回 `accessToken`(2h) + `refreshToken`(7d)
-3. 后续请求 `JwtAuthenticationFilter` 拦截验证 token
-4. 从 DB 加载用户角色/权限 → 设置 `SecurityContext`
-5. `SecurityConfig` 基于 `@PreAuthorize("hasAuthority('xxx')")` 做接口级鉴权
-
-### 4. 动态路由
-
-登录后调用 `/api/auth/info` 获取当前用户可见菜单树 → 前端通过 `router.addRoute()` 动态注册 → 侧边栏由后端菜单驱动
-
-## 快速开始
-
-### 方式一：Docker Compose 一键启动
-
-```bash
-docker compose up -d
-```
-
-会自动启动：MySQL、Redis、RabbitMQ、Elasticsearch、Kibana、后端、前端
-
-### 方式二：手动分步启动
-
-#### 1. 启动基础设施
-
-```bash
-docker compose up -d mysql redis rabbitmq elasticsearch kibana
-```
-
-#### 2. 等待服务就绪后，访问 Knife4j API 文档
-
-```
-http://localhost:8080/doc.html
-```
-
-#### 3. 启动前端
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-访问: http://localhost:5173
-
-## 默认账号
-
-| 用户名 | 密码 | 角色 |
-|---|---|---|
-| admin | admin123 | 管理员 (所有权限) |
-| user | user123 | 普通用户 (基础功能) |
-
-## API 端点一览
-
-### 认证模块 (`/api/auth`)
-
-| Method | Path | 说明 | 权限 |
-|---|---|---|---|
-| POST | `/api/auth/login` | 用户登录 | 公开 |
-| POST | `/api/auth/logout` | 用户登出 | 已登录 |
-| POST | `/api/auth/refresh` | 刷新 Token | 刷新 Token |
-| GET | `/api/auth/info` | 当前用户信息+菜单树 | 已登录 |
-
-### 用户管理 (`/api/users`)
-
-| Method | Path | 说明 | 权限 |
-|---|---|---|---|
-| GET | `/api/users` | 用户列表(分页) | `sys:user:list` |
-| GET | `/api/users/{id}` | 用户详情 | `sys:user:list` |
-| POST | `/api/users` | 创建用户 | `sys:user:add` |
-| PUT | `/api/users/{id}` | 更新用户 | `sys:user:edit` |
-| DELETE | `/api/users/{id}` | 删除用户 | `sys:user:delete` |
-| PUT | `/api/users/{id}/roles` | 分配角色 | `sys:user:edit` |
-
-### 角色管理 (`/api/roles`)
-
-| Method | Path | 说明 | 权限 |
-|---|---|---|---|
-| GET | `/api/roles` | 角色列表 | `sys:role:list` |
-| POST | `/api/roles` | 创建/更新角色 | `sys:role:add/edit` |
-| DELETE | `/api/roles/{id}` | 删除角色 | `sys:role:delete` |
-| PUT | `/api/roles/{id}/menus` | 分配菜单权限 | `sys:role:assign` |
-
-### 菜单管理 (`/api/menus`)
-
-| Method | Path | 说明 | 权限 |
-|---|---|---|---|
-| GET | `/api/menus/tree` | 菜单树 | 已登录 |
-| POST | `/api/menus` | 创建菜单 | `sys:menu:add` |
-| PUT | `/api/menus/{id}` | 更新菜单 | `sys:menu:edit` |
-| DELETE | `/api/menus/{id}` | 删除菜单 | `sys:menu:delete` |
-
-### AI 功能 (`/api/ai`)
-
-| Method | Path | 说明 | 权限 |
-|---|---|---|---|
-| POST | `/api/ai/chat/stream` | SSE 流式聊天 | 已登录 |
-| GET | `/api/ai/models` | 获取可用 AI 模型 | 已登录 |
-| POST | `/api/ai/switch` | 切换默认 AI 模型 | 已登录 |
-
-### 协议管理 (`/api/protocol`)
-
-| Method | Path | 说明 | 权限 |
-|---|---|---|---|
-| POST | `/api/protocol/send/{protocol}/{deviceId}` | 向设备发送数据 | 已登录 |
-| GET | `/api/protocol/status` | 获取所有协议状态 | 已登录 |
-| POST | `/api/protocol/start-all` | 启动所有协议 | 已登录 |
-| POST | `/api/protocol/stop-all` | 停止所有协议 | 已登录 |
-
-## 扩展指南
-
-### 新增 AI 模型（只需 3 步）
-
-```java
-// 1. 实现 AiModelAdapter 接口
-@Component
-public class XxxAiAdapter implements AiModelAdapter {
-    @Override
-    public String getProviderName() { return "xxx"; }
-
-    @Override
-    public Flux<String> chatStream(String model, String systemPrompt, String userMessage) {
-        // 实现流式调用逻辑
-    }
-
-    @Override
-    public String chatBlocking(String model, String systemPrompt, String userMessage) {
-        // 实现阻塞调用逻辑
-    }
-
-    @Override
-    public boolean isAvailable() { return true; }
-}
-
-// 2. @Component 已标注，Spring 自动注册到 AiAdapterFactory
-
-// 3. 在 application.yml 添加配置
-ai:
-  adapters:
-    xxx:
-      api-key: your-key
-      base-url: https://xxx.api
-```
-
-### 新增协议（只需 3 步）
-
-```java
-// 1. 实现 ProtocolAdapter 接口
-@Component
-public class XxxProtocolAdapter implements ProtocolAdapter {
-    @Override
-    public String getProtocolName() { return "xxx"; }
-
-    @Override
-    public void start() throws Exception { /* 启动连接 */ }
-
-    @Override
-    public void stop() { /* 断开连接 */ }
-
-    @Override
-    public boolean send(String deviceId, byte[] data) { /* 发送数据 */ }
-
-    @Override
-    public boolean isAlive(String deviceId) { return true; }
-}
-
-// 2. @Component 已标注，Spring 自动注册到 ProtocolAdapterFactory
-
-// 3. 在 application.yml 添加配置
-protocol:
-  xxx:
-    host: localhost
-    port: 8888
+docker-compose.yml
+├── MySQL 8.0
+├── Redis 7
+├── RabbitMQ 3
+├── Elasticsearch 8.15
+├── Kibana 8.15
+└── Nginx (前端静态资源)
 ```
 
 ## 项目结构
 
 ```
 smarthub/
-├── pom.xml                              # Maven 依赖配置
-├── Dockerfile                           # 后端多阶段构建镜像
-├── docker-compose.yml                   # 全量基础设施编排
-├── README.md                            # 本文档
-│
 ├── src/main/java/com/example/smarthub/
-│   ├── SmarthubApplication.java         # 启动类
-│   ├── common/                          # 公共模块
-│   │   ├── base/BaseEntity.java         # 实体基类 (ID/时间/逻辑删除)
-│   │   ├── enums/ErrorCode.java         # 错误码枚举 (14种)
-│   │   ├── exception/
-│   │   │   ├── BizException.java        # 业务异常
-│   │   │   └── GlobalExceptionHandler.java  # 全局异常处理
-│   │   ├── response/R.java             # 统一响应封装
-│   │   └── util/JwtUtil.java           # JWT 工具类
-│   ├── config/                          # 配置类
-│   │   ├── SecurityConfig.java          # Spring Security + JWT 过滤器链
+│   ├── common/                    # 公共基础设施
+│   │   ├── base/BaseEntity.java   # 实体基类（id, createTime, deleted...）
+│   │   ├── enums/ErrorCode.java   # 错误码枚举
+│   │   ├── exception/             # 业务异常 + 全局异常处理
+│   │   ├── response/R.java        # 统一响应封装
+│   │   └── util/JwtUtil.java      # JWT 工具类
+│   ├── config/                    # 配置类
+│   │   ├── SecurityConfig.java    # Spring Security + JWT
 │   │   ├── JwtAuthenticationFilter.java  # JWT 认证过滤器
-│   │   ├── MybatisPlusConfig.java       # MyBatis-Plus 分页/乐观锁
-│   │   ├── MyBatisMetaHandler.java      # 自动填充 createTime/updateTime
-│   │   ├── RedisConfig.java             # Redis JSON 序列化
-│   │   ├── RabbitMQConfig.java          # RabbitMQ + @EnableRabbit
-│   │   ├── ElasticsearchConfig.java     # ES WebClient
-│   │   └── SwaggerConfig.java           # Knife4j API 分组
-│   └── module/
-│       ├── system/                      # 系统管理模块 (RBAC)
-│       │   ├── controller/              # Auth/User/Role/Menu
-│       │   ├── service/impl/            # 业务逻辑
-│       │   ├── mapper/                  # MyBatis Mapper
-│       │   ├── entity/                  # 实体类
-│       │   ├── dto/                     # 请求对象
-│       │   └── vo/                      # 视图对象
-│       ├── ai/                          # AI 模块
-│       │   ├── adapter/                 # AI 适配器 (策略模式)
-│       │   │   ├── AiModelAdapter.java  # 接口
-│       │   │   ├── AiAdapterFactory.java # 自动注册中心
-│       │   │   ├── ollama/              # Ollama 本地模型
-│       │   │   ├── dashscope/           # 通义千问
-│       │   │   ├── anthropic/           # Claude
-│       │   │   └── deepseek/            # DeepSeek
-│       │   ├── controller/              # AiChatController
-│       │   ├── service/                 # AiChatService
-│       │   ├── entity/                  # 会话/消息/模型配置
-│       │   ├── mapper/                  # AI 数据访问
-│       │   └── dto/                     # 聊天请求
-│       └── protocol/                    # 协议模块
-│           ├── adapter/                 # 协议适配器 (策略模式)
-│           │   ├── ProtocolAdapter.java # 接口
-│           │   ├── ProtocolAdapterFactory.java # 自动注册中心
-│           │   ├── mqtt/                # MQTT (Eclipse Paho)
-│           │   └── tcp/                 # TCP (Netty)
-│           ├── controller/              # ProtocolController
-│           └── service/                 # ProtocolService
-│
+│   │   ├── MybatisPlusConfig.java # MyBatis-Plus 分页/乐观锁
+│   │   ├── MyBatisMetaHandler.java # 自动填充 createTime/updateBy
+│   │   ├── RedisConfig.java       # Redis 序列化配置
+│   │   ├── RabbitMQConfig.java    # RabbitMQ 配置
+│   │   ├── ElasticsearchConfig.java # ES WebClient
+│   │   └── SwaggerConfig.java     # API 文档分组
+│   ├── module/
+│   │   ├── system/                # 系统模块（RBAC）
+│   │   │   ├── controller/        # Auth / User / Role / Menu
+│   │   │   ├── service/           # 业务逻辑
+│   │   │   ├── entity/            # 数据库实体
+│   │   │   ├── dto/               # 请求数据传输对象
+│   │   │   ├── vo/                # 视图对象
+│   │   │   └── mapper/            # MyBatis-Plus Mapper
+│   │   ├── ai/                    # AI 模块（适配器模式）
+│   │   │   ├── adapter/           # 4 个提供商适配器
+│   │   │   │   ├── OllamaAiAdapter.java
+│   │   │   │   ├── DashScopeAiAdapter.java
+│   │   │   │   ├── AnthropicAiAdapter.java
+│   │   │   │   └── DeepSeekAiAdapter.java
+│   │   │   ├── controller/        # AiChatController
+│   │   │   ├── service/           # AiChatService
+│   │   │   ├── entity/            # Conversation / Message / ModelConfig
+│   │   │   ├── dto/               # ChatRequest
+│   │   │   └── mapper/
+│   │   ├── protocol/              # 协议模块（适配器模式）
+│   │   │   ├── adapter/           # MQTT / TCP 适配器
+│   │   │   ├── controller/        # ProtocolController
+│   │   │   └── service/           # ProtocolService
+│   │   └── monitor/               # 监控模块
+│   │       ├── aspect/RequestLogAspect.java  # 请求日志 AOP 切面
+│   │       ├── entity/RequestLog.java
+│   │       ├── mapper/RequestLogMapper.java
+│   │       └── service/RequestLogService.java
+│   └── SmarthubApplication.java   # 应用入口
 ├── src/main/resources/
-│   ├── application.yml                  # 主配置 (profile: dev)
-│   ├── application-dev.yml              # 开发环境配置
-│   ├── application-prod.yml             # 生产环境配置
-│   ├── application-test.yml             # 测试环境配置
+│   ├── application.yml            # 全局配置（入口）
+│   ├── application-dev.yml        # 开发环境配置
+│   ├── application-test.yml       # 测试环境配置
+│   ├── application-prod.yml       # 生产环境配置
+│   ├── logback-spring.xml         # 日志配置（分模块/分环境）
 │   └── db/
-│       ├── V1__init_schema.sql          # 9 张建表 SQL
-│       └── V2__init_data.sql           # 种子数据
-│
-├── frontend/                            # Vue 3 前端项目
-│   ├── package.json
-│   ├── vite.config.ts                   # Vite + 代理配置
-│   └── src/
-│       ├── api/                         # Axios 请求封装
-│       │   ├── request.ts               # 拦截器 (JWT/错误处理)
-│       │   ├── auth.ts                  # 认证 API
-│       │   ├── menu.ts                  # 菜单 API
-│       │   └── ai.ts                    # AI 聊天 API (SSE)
-│       ├── views/                       # 页面组件
-│       │   ├── login/Login.vue          # 登录页
-│       │   ├── dashboard/Dashboard.vue  # 首页统计
-│       │   ├── system/                  # 系统管理页 (待完善)
-│       │   └── ai/                      # AI 功能页 (待完善)
-│       ├── layouts/DefaultLayout.vue    # 主布局 (侧边栏+头部)
-│       ├── router/                      # 路由配置
-│       │   ├── index.ts                 # 常量路由 + 守卫
-│       │   └── dynamic.ts               # 动态路由注册
-│       ├── store/user.ts                # Pinia 用户状态
-│       ├── types/                       # TypeScript 类型
-│       └── utils/auth.ts                # Token 工具函数
-│
-└── generator/template/                  # [预留] AI 代码生成 Velocity 模板
+│       ├── V1__init_schema.sql    # 数据库建表
+│       ├── V2__init_data.sql      # 种子数据
+│       └── V3__create_request_log.sql  # 请求日志表
+└── frontend/                      # Vue 3 前端
+    ├── src/
+    │   ├── api/                   # Axios 封装 + 接口调用
+    │   ├── router/                # 静态路由 + 动态路由
+    │   ├── store/                 # Pinia 状态管理
+    │   ├── views/                 # 页面组件
+    │   │   ├── login/             # 登录页
+    │   │   ├── dashboard/         # 仪表盘
+    │   │   ├── system/            # 系统管理（用户/角色/菜单）
+    │   │   └── ai/                # AI 功能（聊天/代码生成）
+    │   ├── layouts/               # 布局组件
+    │   └── types/                 # TypeScript 类型定义
+    └── vite.config.ts             # Vite 配置
 ```
 
-## 数据库表
+## 快速开始
+
+### 前置条件
+
+- JDK 17+
+- Maven 3.8+
+- Node.js 18+
+- MySQL 8.0
+- Redis
+- RabbitMQ（可选）
+
+### 1. 后端启动
+
+```bash
+# 编译打包
+mvn clean package -DskipTests
+
+# 启动（默认使用 dev 配置）
+mvn spring-boot:run
+# 或
+java -jar target/smarthub-0.0.1-SNAPSHOT.jar
+
+# 服务运行在 http://localhost:8080
+```
+
+### 2. 前端启动
+
+```bash
+cd frontend
+
+# 安装依赖
+npm install
+
+# 开发模式启动（默认端口 5173）
+npm run dev
+
+# 生产构建
+npm run build
+```
+
+### 3. 默认账号
+
+| 用户名 | 密码 | 角色 |
+|--------|------|------|
+| admin | admin123 | 管理员（全部权限） |
+| user | user123 | 普通用户（基础功能） |
+
+## 数据库初始化
+
+项目使用 SQL 脚本初始化数据库，执行顺序如下：
+
+```bash
+# 1. 创建数据库和表结构
+mysql -u root -p < src/main/resources/db/V1__init_schema.sql
+
+# 2. 插入种子数据（管理员、角色、菜单、AI 模型配置）
+mysql -u root -p < src/main/resources/db/V2__init_data.sql
+
+# 3. 创建请求日志表
+mysql -u root -p < src/main/resources/db/V3__create_request_log.sql
+```
+
+### 数据库表清单
 
 | 表名 | 说明 |
-|---|---|
-| sys_user | 用户表 |
-| sys_role | 角色表 |
-| sys_menu | 菜单表 (支持目录/菜单/按钮三级) |
-| sys_user_role | 用户角色关联 |
-| sys_role_permission | 角色菜单关联 |
-| ai_model_config | AI 模型配置 |
-| ai_conversation | AI 会话 |
-| ai_message | AI 消息记录 |
+|------|------|
+| `sys_user` | 用户表 |
+| `sys_role` | 角色表 |
+| `sys_menu` | 菜单表 |
+| `sys_user_role` | 用户-角色关联 |
+| `sys_role_permission` | 角色-菜单关联 |
+| `ai_model_config` | AI 模型配置 |
+| `ai_conversation` | AI 会话 |
+| `ai_message` | AI 消息 |
+| `request_log` | 请求日志 |
 
-## 注意事项
+## API 文档
 
-1. **数据库初始化**：`docker-compose.yml` 会自动将 `db/` 目录挂载到 `/docker-entrypoint-initdb.d`，首次启动 MySQL 时自动执行建表 SQL
-2. **AI 模型配置**：默认使用 Ollama（本地），如需切换到其他模型，在 `application.yml` 中修改 `ai.default-adapter`
-3. **协议启动**：MQTT 和 TCP 协议需要在应用启动后手动调用 `/api/protocol/start-all` 启动
-4. **前端页面**：用户管理/角色管理/菜单管理/AI 聊天/AI 代码生成页面目前为骨架界面，核心后端 API 已完整实现
+启动后端后访问：
+
+- **Knife4j 增强文档**: http://localhost:8080/doc.html
+- **Swagger UI**: http://localhost:8080/swagger-ui.html
+
+API 按模块分为 6 组：认证管理、用户管理、角色管理、菜单管理、AI 功能、协议管理。
+
+## 模块说明
+
+### 系统模块（RBAC 权限管理）
+
+采用经典的 RBAC 模型：
+- **用户 ↔ 角色**: 多对多（`sys_user_role`）
+- **角色 ↔ 菜单**: 多对多（`sys_role_permission`）
+- **菜单**: 三级结构（目录 → 菜单 → 按钮），通过 `menu_type` 区分
+- **认证流程**: 登录 → JWT → 过滤器解析 → 加载权限 → `@PreAuthorize` 校验
+- **动态路由**: 前端根据后端返回的菜单树动态注册路由
+
+### AI 模块
+
+采用**适配器模式 + 工厂自动发现**：
+
+```
+AiModelAdapter (接口)
+├── OllamaAiAdapter      (本地模型，无需 API Key)
+├── DashScopeAiAdapter   (阿里云通义千问)
+├── AnthropicAiAdapter   (Claude)
+└── DeepSeekAiAdapter    (DeepSeek)
+```
+
+新增提供商只需实现 `AiModelAdapter` 接口并标注 `@Component`，无需修改其他代码。
+
+**聊天流程**: 前端发送消息 → Controller → Service 选择适配器 → 调用 `chatStream()` → Flux 流式返回 → SSE 推送 → 消息持久化到 `ai_message` 表。
+
+### 协议模块
+
+```
+ProtocolAdapter (接口)
+├── MqttProtocolAdapter  (Eclipse Paho，连接 MQTT Broker)
+└── TcpProtocolAdapter   (Netty NIO，TCP 服务端)
+```
+
+### 监控模块
+
+- **RequestLogAspect**: AOP 切面自动拦截所有 Controller 请求
+- 记录：IP、方法、URL、耗时、模块、操作用户、是否异常
+- 异步写入数据库，不阻塞业务
+- 独立日志文件 `request.log`
+
+## 配置说明
+
+### 多环境配置
+
+通过 `spring.profiles.active` 切换环境：
+
+| 环境 | 文件 | 特点 |
+|------|------|------|
+| dev | `application-dev.yml` | DEBUG 级别、SQL 打印、Knife4j 开启 |
+| test | `application-test.yml` | 独立测试库、短 Token 过期 |
+| prod | `application-prod.yml` | WARN 级别、环境变量注入、关闭文档 |
+
+### AI 提供商配置
+
+```yaml
+ai:
+  default-adapter: ollama        # 默认提供商
+  adapters:
+    anthropic:
+      api-key: ${AI_ANTHROPIC_KEY}   # 从环境变量读取
+  models:
+    ollama: qwen2.5:7b
+    anthropic: claude-sonnet-4-20250514
+```
+
+## 日志说明
+
+日志采用 **Logback** 配置，支持按模块分文件、按日期+大小分割：
+
+```
+logs/
+├── smarthub.log              # 主日志（INFO+）
+├── smarthub-error.log        # 全局错误日志（ERROR+）
+├── system.log                # 系统模块日志
+├── system-error.log
+├── ai.log                    # AI 模块日志
+├── ai-error.log
+├── protocol.log              # 协议模块日志
+├── protocol-error.log
+└── request.log               # 请求日志（AOP 切面）
+```
+
+- 按天分割，单文件超过 100MB 也会分割
+- 保留最近 30 天，总容量上限 3GB
+- 生产环境自动降低日志级别
+- 日志路径可通过 `LOG_PATH` 环境变量覆盖
+
+## Docker 部署
+
+```bash
+# 一键启动所有基础设施
+docker-compose up -d
+
+# 构建后端镜像
+docker build -t smarthub-backend .
+
+# 构建前端镜像（使用 Nginx）
+docker build -f Dockerfile.nginx -t smarthub-frontend ./frontend
+```
+
+## 许可证
+
+MIT

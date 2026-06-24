@@ -5,6 +5,10 @@ import lombok.Data;
 
 import java.util.List;
 
+/**
+ * 菜单树节点 VO — 用于菜单管理页面的树形展示
+ * 递归结构，children 包含所有子菜单
+ */
 @Data
 @Schema(description = "菜单树节点")
 public class MenuTreeNodeVO {

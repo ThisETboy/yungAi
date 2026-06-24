@@ -6,16 +6,19 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+/**
+ * 角色实体 — 对应 sys_role 表
+ */
 @Data
 @EqualsAndHashCode(callSuper = true)
 @TableName("sys_role")
 @Schema(description = "角色实体")
 public class SysRole extends BaseEntity {
 
-    @Schema(description = "角色编码")
+    @Schema(description = "角色编码（唯一，如 ADMIN、USER）")
     private String roleCode;
 
-    @Schema(description = "角色名称")
+    @Schema(description = "角色名称（如 管理员、普通用户）")
     private String roleName;
 
     @Schema(description = "描述")

@@ -6,6 +6,7 @@ import com.example.smarthub.module.system.dto.LoginRequest;
 import com.example.smarthub.module.system.dto.LoginResponse;
 import com.example.smarthub.module.system.entity.SysMenu;
 import com.example.smarthub.module.system.mapper.SysRoleMapper;
+import com.example.smarthub.module.system.service.SysUserService;
 import com.example.smarthub.module.system.vo.UserInfoVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,6 +24,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * 认证控制器 — 处理登录、登出、Token 刷新、获取当前用户信息
+ *
+ * 注意：当前登录流程中 userId 硬编码为 1，后续应改为从数据库查询真实用户ID
+ */
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -32,7 +38,15 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
     private final SysRoleMapper sysRoleMapper;
+    private final SysUserService sysUserService;
 
+    /**
+     * 用户登录
+     * 1. AuthenticationManager 校验用户名密码（通过 DaoAuthenticationProvider）
+     * 2. 从数据库查询真实 userId
+     * 3. 生成 accessToken（含 userId、username）和 refreshToken
+     * 4. 将 Authentication 放入 SecurityContext
+     */
     @PostMapping("/login")
     @Operation(summary = "用户登录")
     public R<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
@@ -40,8 +54,10 @@ public class AuthController {
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
+        // 从数据库查询真实 userId
+        Long userId = sysUserService.findByUsername(request.getUsername()).getId();
         String accessToken = jwtUtil.generateToken(
-                1L, request.getUsername(), Map.of());
+                userId, request.getUsername(), Map.of());
         String refreshToken = jwtUtil.generateRefreshToken(request.getUsername());
 
         return R.ok(LoginResponse.builder()
@@ -52,6 +68,9 @@ public class AuthController {
                 .build());
     }
 
+    /**
+     * 用户登出 — 清除当前 SecurityContext
+     */
     @PostMapping("/logout")
     @Operation(summary = "用户登出")
     public R<Void> logout() {
@@ -59,6 +78,10 @@ public class AuthController {
         return R.ok();
     }
 
+    /**
+     * 刷新 Access Token
+     * 使用 refreshToken 换取新的 accessToken + refreshToken
+     */
     @PostMapping("/refresh")
     @Operation(summary = "刷新Token")
     public R<LoginResponse> refresh(HttpServletRequest request) {
@@ -71,7 +94,9 @@ public class AuthController {
             return R.fail(401, "刷新令牌已过期");
         }
         String username = jwtUtil.getUsername(refreshToken);
-        String newAccessToken = jwtUtil.generateToken(1L, username, Map.of());
+        // 从数据库查询真实 userId
+        Long userId = sysUserService.findByUsername(username).getId();
+        String newAccessToken = jwtUtil.generateToken(userId, username, Map.of());
         String newRefreshToken = jwtUtil.generateRefreshToken(username);
 
         return R.ok(LoginResponse.builder()
@@ -82,12 +107,17 @@ public class AuthController {
                 .build());
     }
 
+    /**
+     * 获取当前登录用户的信息（角色、权限、菜单树）
+     * 用于前端动态生成侧边栏菜单和权限校验
+     */
     @GetMapping("/info")
     @Operation(summary = "当前用户信息")
     public R<UserInfoVO> info(HttpServletRequest request) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth.getName();
 
+        // 从 Token 中提取 userId，失败则回退到 1
         String authHeader = request.getHeader("Authorization");
         Long userId = 1L;
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
@@ -101,6 +131,7 @@ public class AuthController {
         UserInfoVO vo = new UserInfoVO();
         vo.setUsername(username);
 
+        // 分离角色和权限标识
         List<String> roles = auth.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .filter(a -> a.startsWith("ROLE_"))
@@ -113,12 +144,14 @@ public class AuthController {
                 .collect(Collectors.toList());
         vo.setPermissions(permissions);
 
+        // 查询该用户有权限访问的菜单
         List<SysMenu> menus = sysRoleMapper.selectMenusByUserId(userId);
         vo.setMenus(convertMenus(menus));
 
         return R.ok(vo);
     }
 
+    /** 将 SysMenu 实体列表转换为 UserInfoVO.MenuNode 列表 */
     private List<UserInfoVO.MenuNode> convertMenus(List<SysMenu> menus) {
         return menus.stream().map(m -> {
             UserInfoVO.MenuNode node = new UserInfoVO.MenuNode();

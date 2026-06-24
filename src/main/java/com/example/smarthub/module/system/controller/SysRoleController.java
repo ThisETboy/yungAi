@@ -12,6 +12,11 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * 角色管理控制器
+ *
+ * 所有接口均受 @PreAuthorize 权限控制
+ */
 @RestController
 @RequestMapping("/api/roles")
 @RequiredArgsConstructor
@@ -20,6 +25,7 @@ public class SysRoleController {
 
     private final SysRoleService roleService;
 
+    /** 获取所有角色列表（不分页） */
     @GetMapping
     @Operation(summary = "角色列表")
     @PreAuthorize("hasAuthority('sys:role:list')")
@@ -27,6 +33,10 @@ public class SysRoleController {
         return R.ok(roleService.list());
     }
 
+    /**
+     * 创建或更新角色（根据 request.id 是否为空判断）
+     * 权限标识: sys:role:add 或 sys:role:edit
+     */
     @PostMapping
     @Operation(summary = "创建/更新角色")
     @PreAuthorize("hasAuthority('sys:role:add') or hasAuthority('sys:role:edit')")
@@ -35,6 +45,10 @@ public class SysRoleController {
         return R.ok();
     }
 
+    /**
+     * 删除角色（同时级联删除角色-菜单关联）
+     * 权限标识: sys:role:delete
+     */
     @DeleteMapping("/{id}")
     @Operation(summary = "删除角色")
     @PreAuthorize("hasAuthority('sys:role:delete')")
@@ -43,6 +57,10 @@ public class SysRoleController {
         return R.ok();
     }
 
+    /**
+     * 为角色分配菜单权限（先清空原有分配，再插入新分配）
+     * 权限标识: sys:role:assign
+     */
     @PutMapping("/{id}/menus")
     @Operation(summary = "分配菜单权限")
     @PreAuthorize("hasAuthority('sys:role:assign')")

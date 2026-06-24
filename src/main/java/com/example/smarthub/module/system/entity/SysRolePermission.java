@@ -6,6 +6,10 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
+/**
+ * 角色菜单关联实体 — 对应 sys_role_permission 表
+ * 联合唯一索引：role_id + menu_id
+ */
 @Data
 @TableName("sys_role_permission")
 @Schema(description = "角色菜单关联")

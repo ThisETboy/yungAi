@@ -12,7 +12,13 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * MQTT 协议适配器 - 基于 Eclipse Paho
+ * MQTT 协议适配器 — 基于 Eclipse Paho
+ *
+ * 作为 MQTT Broker 的客户端，负责：
+ * - 连接 Broker
+ * - 订阅/发布设备主题（device/{deviceId}）
+ * - 接收设备上行消息
+ * - 管理设备连接池
  *
  * 新增协议只需要三步：
  * 1. 实现 ProtocolAdapter 接口
@@ -25,7 +31,10 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class MqttProtocolAdapter implements ProtocolAdapter {
 
+    /** 设备客户端连接池 — key=deviceId, value=MqttClient */
     private final Map<String, MqttClient> clientPool = new ConcurrentHashMap<>();
+
+    /** Broker 客户端 — 用于发布消息到 Broker */
     private MqttClient brokerClient;
 
     @Value("${protocol.mqtt.broker-url:tcp://localhost:1883}")
@@ -60,9 +69,13 @@ public class MqttProtocolAdapter implements ProtocolAdapter {
         return "mqtt";
     }
 
+    /**
+     * 连接 MQTT Broker
+     * 设置连接选项、回调（断线重连、消息接收、发送确认）
+     */
     @Override
     public void start() throws Exception {
-        // 连接 Broker
+        // 使用内存持久化（不持久化到磁盘）
         MemoryPersistence persistence = new MemoryPersistence();
         brokerClient = new MqttClient(brokerUrl, clientId, persistence);
         MqttConnectOptions options = new MqttConnectOptions();
@@ -75,6 +88,7 @@ public class MqttProtocolAdapter implements ProtocolAdapter {
             options.setUserName(username);
             options.setPassword(password.toCharArray());
         }
+        // 设置回调：连接丢失、消息到达、发送完成
         brokerClient.setCallback(new MqttCallback() {
             @Override
             public void connectionLost(Throwable cause) {
@@ -88,13 +102,14 @@ public class MqttProtocolAdapter implements ProtocolAdapter {
 
             @Override
             public void deliveryComplete(IMqttDeliveryToken token) {
-                // message delivered
+                // 消息投递完成（无需处理）
             }
         });
         brokerClient.connect(options);
         log.info("MQTT broker connected: {}", brokerUrl);
     }
 
+    /** 断开 Broker 连接 */
     @Override
     public void stop() {
         if (brokerClient != null && brokerClient.isConnected()) {
@@ -106,6 +121,11 @@ public class MqttProtocolAdapter implements ProtocolAdapter {
         }
     }
 
+    /**
+     * 向设备发送数据
+     * 发布到主题: device/{deviceId}
+     * @return true=发送成功, false=发送失败
+     */
     @Override
     public boolean send(String deviceId, byte[] data) {
         try {
@@ -120,12 +140,17 @@ public class MqttProtocolAdapter implements ProtocolAdapter {
         }
     }
 
+    /**
+     * 检查设备是否在线
+     * 从设备连接池中查找该设备的客户端并检查连接状态
+     */
     @Override
     public boolean isAlive(String deviceId) {
         MqttClient client = clientPool.get(deviceId);
         return client != null && client.isConnected();
     }
 
+    /** 容器销毁时自动停止连接 */
     @PreDestroy
     public void destroy() {
         stop();

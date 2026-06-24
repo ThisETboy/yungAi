@@ -10,6 +10,13 @@ import reactor.core.publisher.Flux;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * DeepSeek 适配器 — 兼容 OpenAI 格式的 API
+ *
+ * DeepSeek 的 API 协议与 OpenAI Chat Completions API 完全一致
+ * 可直接复用 OpenAI 的请求/响应格式
+ * API 文档: https://platform.deepseek.com/usage
+ */
 @Slf4j
 @Component
 public class DeepSeekAiAdapter implements AiModelAdapter {
@@ -33,6 +40,10 @@ public class DeepSeekAiAdapter implements AiModelAdapter {
         return "deepseek";
     }
 
+    /**
+     * DeepSeek 流式聊天
+     * 请求格式与 OpenAI API 一致: POST /v1/chat/completions
+     */
     @Override
     public Flux<String> chatStream(String model, String systemPrompt, String userMessage) {
         Map<String, Object> body = new HashMap<>();
@@ -51,6 +62,10 @@ public class DeepSeekAiAdapter implements AiModelAdapter {
                 .doOnError(err -> log.error("DeepSeek stream error: {}", err.getMessage()));
     }
 
+    /**
+     * DeepSeek 阻塞式聊天
+     * 从 choices[0].message.content 中提取回复文本
+     */
     @Override
     public String chatBlocking(String model, String systemPrompt, String userMessage) {
         Map<String, Object> body = new HashMap<>();
@@ -83,6 +98,9 @@ public class DeepSeekAiAdapter implements AiModelAdapter {
         }
     }
 
+    /**
+     * 健康检查 — 调用 /v1/models 端点
+     */
     @Override
     public boolean isAvailable() {
         try {

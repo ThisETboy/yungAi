@@ -5,27 +5,51 @@
       <el-col :span="6">
         <el-card shadow="hover">
           <template #header>用户数量</template>
-          <div style="font-size: 24px; text-align: center">--</div>
+          <div style="font-size: 24px; text-align: center; color: #409eff">{{ stats.users }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover">
           <template #header>角色数量</template>
-          <div style="font-size: 24px; text-align: center">--</div>
+          <div style="font-size: 24px; text-align: center; color: #67c23a">{{ stats.roles }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover">
           <template #header>AI 模型</template>
-          <div style="font-size: 24px; text-align: center">4</div>
+          <div style="font-size: 24px; text-align: center; color: #e6a23c">{{ stats.aiModels }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover">
           <template #header>协议接入</template>
-          <div style="font-size: 24px; text-align: center">2</div>
+          <div style="font-size: 24px; text-align: center; color: #f56c6c">{{ stats.protocols }}</div>
         </el-card>
       </el-col>
     </el-row>
   </div>
 </template>
+
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import request from '@/api/request'
+
+const stats = ref({ users: 0, roles: 0, aiModels: 0, protocols: 0 })
+
+onMounted(async () => {
+  try {
+    const [users, roles, aiModels] = await Promise.all([
+      request.get('/users', { params: { current: 1, size: 1 } }),
+      request.get('/roles'),
+      request.get('/ai/models'),
+    ])
+    stats.value.users = users?.total || 0
+    stats.value.roles = Array.isArray(roles) ? roles.length : 0
+    stats.value.aiModels = Object.keys(aiModels || {}).length
+  } catch {
+    // ignore dashboard errors
+  }
+  // 协议数量固定为 2（MQTT + TCP）
+  stats.value.protocols = 2
+})
+</script>

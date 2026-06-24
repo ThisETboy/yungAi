@@ -6,6 +6,11 @@ import lombok.Data;
 
 import java.util.List;
 
+/**
+ * 角色创建/更新请求 DTO
+ * - 创建时：id 为空，必填 roleCode + roleName
+ * - 更新时：id 必填，roleCode 不应变更
+ */
 @Data
 @Schema(description = "角色创建/更新请求")
 public class RoleRequest {
@@ -23,7 +28,7 @@ public class RoleRequest {
 
     private Integer status;
 
-    @Schema(description = "关联的用户ID列表")
+    @Schema(description = "关联的用户ID列表（暂不在此处理）")
     private List<Long> userIds;
 
     @Schema(description = "关联的菜单ID列表")

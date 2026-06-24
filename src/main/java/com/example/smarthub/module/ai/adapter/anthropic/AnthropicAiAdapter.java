@@ -10,6 +10,14 @@ import reactor.core.publisher.Flux;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Anthropic Claude 适配器
+ *
+ * 使用 Anthropic Messages API (v1) 进行流式聊天
+ * API 文档: https://docs.anthropic.com/en/api/messages
+ *
+ * 注意：Anthropic API 的 /v1/models 端点不存在，isAvailable() 健康检查会返回 false
+ */
 @Slf4j
 @Component
 public class AnthropicAiAdapter implements AiModelAdapter {
@@ -35,6 +43,11 @@ public class AnthropicAiAdapter implements AiModelAdapter {
         return "anthropic";
     }
 
+    /**
+     * Anthropic 流式聊天
+     * 请求格式: POST /v1/messages { model, max_tokens, stream, system, messages }
+     * 响应格式: SSE 事件流，每个事件包含 { type: "content_block_delta", delta: { text: "..." } }
+     */
     @Override
     public Flux<String> chatStream(String model, String systemPrompt, String userMessage) {
         Map<String, Object> body = new HashMap<>();
@@ -54,6 +67,10 @@ public class AnthropicAiAdapter implements AiModelAdapter {
                 .doOnError(err -> log.error("Anthropic stream error: {}", err.getMessage()));
     }
 
+    /**
+     * Anthropic 阻塞式聊天
+     * 等待完整响应后提取 content 块中的文本
+     */
     @Override
     public String chatBlocking(String model, String systemPrompt, String userMessage) {
         Map<String, Object> body = new HashMap<>();
@@ -86,6 +103,10 @@ public class AnthropicAiAdapter implements AiModelAdapter {
         }
     }
 
+    /**
+     * 健康检查
+     * 注意：Anthropic API 没有 /v1/models 端点，此方法会返回 false
+     */
     @Override
     public boolean isAvailable() {
         try {

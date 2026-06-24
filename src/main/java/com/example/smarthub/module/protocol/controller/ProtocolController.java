@@ -9,6 +9,14 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+/**
+ * 协议管理控制器
+ *
+ * 提供设备通信协议的 REST 接口：
+ * - 向设备发送数据
+ * - 查询协议状态
+ * - 批量启停协议
+ */
 @RestController
 @RequestMapping("/api/protocol")
 @RequiredArgsConstructor
@@ -17,6 +25,12 @@ public class ProtocolController {
 
     private final ProtocolService protocolService;
 
+    /**
+     * 向指定协议的设备发送数据
+     * @param protocol  协议名称（mqtt/tcp）
+     * @param deviceId  设备ID
+     * @param data      数据内容（字符串形式）
+     */
     @PostMapping("/send/{protocol}/{deviceId}")
     @Operation(summary = "向设备发送数据")
     public R<Void> sendData(@PathVariable String protocol,
@@ -26,12 +40,14 @@ public class ProtocolController {
         return success ? R.ok() : R.fail("发送失败");
     }
 
+    /** 获取所有协议的状态 */
     @GetMapping("/status")
     @Operation(summary = "获取所有协议状态")
     public R<Map<String, Boolean>> status() {
         return R.ok(protocolService.getProtocolStatus());
     }
 
+    /** 启动所有协议适配器 */
     @PostMapping("/start-all")
     @Operation(summary = "启动所有协议")
     public R<Void> startAll() {
@@ -39,6 +55,7 @@ public class ProtocolController {
         return R.ok();
     }
 
+    /** 停止所有协议适配器 */
     @PostMapping("/stop-all")
     @Operation(summary = "停止所有协议")
     public R<Void> stopAll() {

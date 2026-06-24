@@ -12,6 +12,11 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * 菜单管理控制器
+ *
+ * 注意：/tree 接口未加权限校验，供前端动态路由加载使用
+ */
 @RestController
 @RequestMapping("/api/menus")
 @RequiredArgsConstructor
@@ -20,12 +25,20 @@ public class SysMenuController {
 
     private final SysMenuService menuService;
 
+    /**
+     * 获取完整的菜单树（不分权限）
+     * 用于前端初始化侧边栏菜单
+     */
     @GetMapping("/tree")
     @Operation(summary = "菜单树")
     public R<List<MenuTreeNodeVO>> tree() {
         return R.ok(menuService.getMenuTree());
     }
 
+    /**
+     * 创建菜单
+     * 权限标识: sys:menu:add
+     */
     @PostMapping
     @Operation(summary = "创建菜单")
     @PreAuthorize("hasAuthority('sys:menu:add')")
@@ -34,6 +47,10 @@ public class SysMenuController {
         return R.ok();
     }
 
+    /**
+     * 更新菜单
+     * 权限标识: sys:menu:edit
+     */
     @PutMapping("/{id}")
     @Operation(summary = "更新菜单")
     @PreAuthorize("hasAuthority('sys:menu:edit')")
@@ -43,6 +60,10 @@ public class SysMenuController {
         return R.ok();
     }
 
+    /**
+     * 删除菜单（有子菜单时不允许删除）
+     * 权限标识: sys:menu:delete
+     */
     @DeleteMapping("/{id}")
     @Operation(summary = "删除菜单")
     @PreAuthorize("hasAuthority('sys:menu:delete')")

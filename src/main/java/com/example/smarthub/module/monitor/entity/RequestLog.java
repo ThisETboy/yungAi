@@ -1,0 +1,54 @@
+package com.example.smarthub.module.monitor.entity;
+
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.example.smarthub.common.base.BaseEntity;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
+/**
+ * 请求日志实体 — 对应 request_log 表
+ * 记录每个 HTTP 请求的关键信息，用于审计和排查问题
+ */
+@Data
+@EqualsAndHashCode(callSuper = true)
+@TableName("request_log")
+@Schema(description = "请求日志实体")
+public class RequestLog extends BaseEntity {
+
+    @Schema(description = "请求方法（GET/POST/PUT/DELETE）")
+    private String method;
+
+    @Schema(description = "请求 URL")
+    private String url;
+
+    @Schema(description = "请求参数（JSON 格式，截断至 2000 字符）")
+    private String params;
+
+    @Schema(description = "响应状态码")
+    private Integer statusCode;
+
+    @Schema(description = "响应结果摘要（截断至 2000 字符）")
+    private String responseBody;
+
+    @Schema(description = "请求耗时（毫秒）")
+    private Long durationMs;
+
+    @Schema(description = "请求 IP 地址")
+    private String ipAddress;
+
+    @Schema(description = "请求用户（用户名）")
+    private String operator;
+
+    @Schema(description = "浏览器 UA")
+    private String userAgent;
+
+    @Schema(description = "请求模块（system/ai/protocol）")
+    private String module;
+
+    @Schema(description = "是否异常（0=正常,1=异常）")
+    private Integer isError;
+
+    @Schema(description = "异常信息（截断至 1000 字符）")
+    private String errorMsg;
+}

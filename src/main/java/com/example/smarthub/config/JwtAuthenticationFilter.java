@@ -22,6 +22,18 @@ import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * JWT 认证过滤器 — 在每个请求中解析 Token 并设置安全上下文
+ *
+ * 流程：
+ * 1. 从 Authorization 头提取 Bearer Token
+ * 2. 验证 Token 合法性
+ * 3. 从 Token 中获取 userId，查询该用户的角色和菜单权限
+ * 4. 构建包含 ROLE_xxx 和权限标识的 Authority 列表
+ * 5. 设置到 SecurityContextHolder 供后续 @PreAuthorize 使用
+ *
+ * 注意：此过滤器在 Spring Security 的 UsernamePasswordAuthenticationFilter 之前执行
+ */
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -35,26 +47,30 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                      FilterChain filterChain) throws ServletException, IOException {
         String authHeader = request.getHeader("Authorization");
 
+        // 无 Token 或格式不对则跳过（允许匿名请求通过）
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
         String token = authHeader.substring(7);
+        // Token 无效则跳过
         if (!jwtUtil.validateToken(token)) {
             filterChain.doFilter(request, response);
             return;
         }
 
         String username = jwtUtil.getUsername(token);
+        // 避免重复认证
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
             Long userId = jwtUtil.getUserId(token);
 
-            // Load permissions from DB
+            // 从数据库加载该用户的角色和菜单权限
             List<SysRole> roles = sysRoleMapper.selectRolesByUserId(userId);
             List<SysMenu> menus = sysRoleMapper.selectMenusByUserId(userId);
 
+            // 构建 Authority 列表：ROLE_前缀的角色 + 菜单权限标识
             List<SimpleGrantedAuthority> authorities = roles.stream()
                     .map(r -> new SimpleGrantedAuthority("ROLE_" + r.getRoleCode()))
                     .collect(Collectors.toList());

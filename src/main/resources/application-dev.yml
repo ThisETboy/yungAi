@@ -1,17 +1,22 @@
-# ===================== Development Profile =====================
+# ============================================================
+# 开发环境配置 (dev)
+# 适用场景：本地开发调试
+# ============================================================
+
 spring:
   config:
     activate:
       on-profile: dev
 
-  # DataSource
+  # ---- 数据库连接 ----
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
+    # 数据库地址：本地 smarthub 库，时区 Asia/Shanghai，允许公钥检索（用于 MySQL 8+ 密码认证）
     url: jdbc:mysql://localhost:3306/smarthub?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: root
     password: root
 
-  # Redis
+  # ---- Redis 缓存 ----
   data:
     redis:
       host: localhost
@@ -19,113 +24,113 @@ spring:
       password: ""
       database: 0
 
-  # RabbitMQ
+  # ---- RabbitMQ 消息队列 ----
   rabbitmq:
     host: localhost
     port: 5672
     username: guest
     password: guest
 
-  # Elasticsearch
+  # ---- Elasticsearch 搜索引擎 ----
   elasticsearch:
     uris: http://localhost:9200
 
-  # Servlet
+  # ---- 文件上传限制 ----
   servlet:
     multipart:
-      max-file-size: 10MB
-      max-request-size: 10MB
+      max-file-size: 10MB       # 单文件最大 10MB
+      max-request-size: 10MB    # 总请求最大 10MB
 
-  # Integration
+  # ---- 排除集成自动配置（避免启动时尝试连接 RabbitMQ 绑定）----
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.integration.IntegrationAutoConfiguration
 
-# MyBatis-Plus
+# ---- MyBatis-Plus ORM 配置 ----
 mybatis-plus:
-  mapper-locations: classpath:mapper/**/*.xml
-  type-aliases-package: com.example.smarthub.module.**.entity
+  mapper-locations: classpath:mapper/**/*.xml          # XML 映射文件扫描路径
+  type-aliases-package: com.example.smarthub.module.**.entity  # 实体别名包
   global-config:
     db-config:
-      id-type: ASSIGN_ID
-      logic-delete-field: deleted
-      logic-delete-value: 1
-      logic-not-delete-value: 0
-    banner: false
+      id-type: ASSIGN_ID           # 主键生成策略：雪花算法
+      logic-delete-field: deleted  # 逻辑删除字段名
+      logic-delete-value: 1        # 逻辑删除值
+      logic-not-delete-value: 0    # 逻辑未删除值
+    banner: false                  # 关闭 MyBatis-Plus 启动 Banner
   configuration:
-    map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    map-underscore-to-camel-case: true  # 驼峰命名自动转换
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl  # 控制台打印 SQL（开发环境方便调试）
 
-# Knife4j / Swagger
+# ---- Knife4j / Swagger API 文档 ----
 springdoc:
   swagger-ui:
-    path: /swagger-ui.html
+    path: /swagger-ui.html   # Swagger UI 页面路径
   api-docs:
-    path: /v3/api-docs
+    path: /v3/api-docs       # OpenAPI 规范 JSON 路径
 knife4j:
-  enable: true
+  enable: true               # 启用 Knife4j 增强文档
   setting:
-    language: zh_cn
+    language: zh_cn          # 文档语言：简体中文
 
-# JWT
+# ---- JWT 认证配置 ----
 jwt:
-  secret: dev-a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6secret
-  expiration: 7200000
-  refresh-expiration: 604800000
+  secret: dev-a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6secret  # 签名密钥（开发用，生产环境需更换）
+  expiration: 7200000               # Access Token 过期时间：2 小时（毫秒）
+  refresh-expiration: 604800000     # Refresh Token 过期时间：7 天（毫秒）
 
-# AI Adapter
+# ---- AI 模型适配器配置 ----
 ai:
-  default-adapter: ollama
+  default-adapter: ollama             # 默认使用的 AI 提供商
   adapters:
     ollama:
-      base-url: http://localhost:11434
-      timeout: 60000
+      base-url: http://localhost:11434  # Ollama 本地服务地址
+      timeout: 60000                    # 请求超时：60 秒
     dashscope:
-      api-key: ${AI_DASHSCOPE_KEY:sk-placeholder}
-      base-url: https://dashscope.aliyuncs.com/api/v1
+      api-key: ${AI_DASHSCOPE_KEY:sk-placeholder}  # 阿里云 API Key（可通过环境变量覆盖，默认占位符）
+      base-url: https://dashscope.aliyuncs.com/api/v1  # 阿里云百炼 API 地址
     anthropic:
-      api-key: ${AI_ANTHROPIC_KEY:sk-ant-placeholder}
-      base-url: https://api.anthropic.com
-      version: "2023-06-01"
+      api-key: ${AI_ANTHROPIC_KEY:sk-ant-placeholder}  # Anthropic API Key
+      base-url: https://api.anthropic.com            # Anthropic API 地址
+      version: "2023-06-01"                        # API 版本
     deepseek:
-      api-key: ${AI_DEEPSEEK_KEY:sk-placeholder}
-      base-url: https://api.deepseek.com
+      api-key: ${AI_DEEPSEEK_KEY:sk-placeholder}     # DeepSeek API Key
+      base-url: https://api.deepseek.com             # DeepSeek API 地址
   models:
-    ollama: qwen2.5:7b
-    dashscope: qwen-plus
-    anthropic: claude-sonnet-4-20250514
-    deepseek: deepseek-chat
+    ollama: qwen2.5:7b                   # Ollama 默认模型
+    dashscope: qwen-plus                 # 通义千问 Plus
+    anthropic: claude-sonnet-4-20250514  # Claude Sonnet
+    deepseek: deepseek-chat              # DeepSeek Chat
 
-# Rate Limiting
+# ---- 限流配置 ----
 rate-limit:
-  enabled: true
-  capacity: 60
-  window-seconds: 60
+  enabled: true          # 是否启用限流
+  capacity: 60           # 每分钟最大请求次数
+  window-seconds: 60     # 时间窗口（秒）
 
-# Protocol (MQTT & TCP)
+# ---- 设备协议配置（MQTT & TCP）----
 protocol:
-  default: mqtt
+  default: mqtt          # 默认协议
   mqtt:
-    broker-url: tcp://localhost:1883
-    client-id: smarthub-broker
-    username: ""
-    password: ""
-    qos: 1
-    clean-session: true
-    keep-alive: 60
-    max-in-flight: 10
-    auto-reconnect: true
+    broker-url: tcp://localhost:1883  # MQTT Broker 地址
+    client-id: smarthub-broker        # 客户端标识
+    username: ""                      # 认证用户名（留空=匿名）
+    password: ""                      # 认证密码
+    qos: 1                            # 服务质量等级（0=最多一次,1=至少一次,2=恰好一次）
+    clean-session: true               # 清除会话（false=保留离线消息）
+    keep-alive: 60                    # 心跳间隔（秒）
+    max-in-flight: 10                 # 最大未确认消息数
+    auto-reconnect: true              # 自动重连
   tcp:
-    host: 0.0.0.0
-    port: 9999
-    backlog: 1024
+    host: 0.0.0.0                     # TCP 监听地址（0.0.0.0=所有网卡）
+    port: 9999                        # TCP 监听端口
+    backlog: 1024                     # 连接队列长度
     child:
-      tcp-no-delay: true
-      keep-alive: true
-    max-frame-length: 65536
+      tcp-no-delay: true              # 禁用 Nagle 算法，减少延迟
+      keep-alive: true                # 开启 TCP 心跳检测
+    max-frame-length: 65536           # 最大数据包长度（64KB）
 
-# Logging
+# ---- 日志级别配置 ----
 logging:
   level:
-    com.example.smarthub: debug
-    org.springframework.security: debug
+    com.example.smarthub: debug              # 应用日志：DEBUG（详细调试信息）
+    org.springframework.security: debug      # Spring Security 日志：DEBUG（认证/授权详情）

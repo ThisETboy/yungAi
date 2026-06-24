@@ -9,6 +9,11 @@ import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Swagger / Knife4j API 文档配置
+ * 将接口分为 6 个组：认证、用户、角色、菜单、AI、协议
+ * 支持 Bearer Token JWT 认证
+ */
 @Configuration
 public class SwaggerConfig {
 

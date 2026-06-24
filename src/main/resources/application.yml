@@ -1,3 +1,8 @@
+# ============================================================
+# SmartHub 全局配置
+# 通过 spring.profiles.active 指定环境配置文件
+# ============================================================
+
 server:
   port: 8080
 
@@ -5,4 +10,4 @@ spring:
   application:
     name: smarthub
   profiles:
-    active: dev
+    active: dev  # 当前激活的环境：dev / test / prod

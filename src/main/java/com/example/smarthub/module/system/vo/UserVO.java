@@ -6,6 +6,9 @@ import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * 用户视图对象 — 用于 API 响应，不包含密码等敏感字段
+ */
 @Data
 @Schema(description = "用户视图对象")
 public class UserVO {
@@ -16,6 +19,7 @@ public class UserVO {
     private String phone;
     private String avatar;
     private Integer status;
+    /** 该用户拥有的角色名称列表 */
     private List<String> roles;
     private LocalDateTime createTime;
 }

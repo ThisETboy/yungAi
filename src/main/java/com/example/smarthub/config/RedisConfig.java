@@ -7,6 +7,13 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
+/**
+ * Redis 配置
+ * 配置 RedisTemplate 的序列化策略：
+ * - Key: String 序列化（可读性好）
+ * - Value: JSON 序列化（方便调试查看）
+ * - Hash Key/Value: 同上
+ */
 @Configuration
 public class RedisConfig {
 

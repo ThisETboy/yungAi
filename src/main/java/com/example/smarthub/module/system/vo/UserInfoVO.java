@@ -5,6 +5,10 @@ import lombok.Data;
 
 import java.util.List;
 
+/**
+ * 用户信息 + 权限视图对象
+ * 登录成功后 /api/auth/info 返回此结构，用于前端构建侧边栏菜单
+ */
 @Data
 @Schema(description = "用户信息+权限视图")
 public class UserInfoVO {
@@ -12,8 +16,11 @@ public class UserInfoVO {
     private String username;
     private String nickname;
     private String avatar;
+    /** 角色编码列表（如 ["ADMIN"]） */
     private List<String> roles;
+    /** 权限标识列表（如 ["sys:user:list", "sys:user:add"]） */
     private List<String> permissions;
+    /** 菜单树（用于前端动态路由） */
     private List<MenuNode> menus;
 
     @Data

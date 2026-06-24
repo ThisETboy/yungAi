@@ -1,49 +1,65 @@
-# ===================== Production Profile =====================
+# ============================================================
+# 生产环境配置 (prod)
+# 适用场景：线上部署
+# 所有敏感配置通过环境变量注入，不硬编码
+# ============================================================
+
 spring:
   config:
     activate:
       on-profile: prod
 
+  # ---- 数据库连接（环境变量注入）----
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
+    # 通过环境变量配置：DB_HOST / DB_PORT / DB_NAME
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:smarthub}?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=true&allowPublicKeyRetrieval=true
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:}
 
+  # ---- Redis（环境变量注入）----
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
 
+  # ---- RabbitMQ（环境变量注入）----
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USERNAME:guest}
     password: ${RABBITMQ_PASSWORD:guest}
 
+  # ---- Elasticsearch（环境变量注入）----
   elasticsearch:
     uris: ${ELASTICSEARCH_URI:http://localhost:9200}
 
+  # ---- 排除集成自动配置 ----
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.integration.IntegrationAutoConfiguration
 
+# ---- MyBatis-Plus（生产环境关闭 SQL 日志）----
 mybatis-plus:
   configuration:
     log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
 
+# ---- Knife4j（生产环境关闭 API 文档）----
 knife4j:
   enable: false
 
+# ---- JWT（环境变量注入密钥）----
 jwt:
-  secret: ${JWT_SECRET:change-this-to-a-strong-secret-in-production}
-  expiration: 7200000
-  refresh-expiration: 604800000
+  secret: ${JWT_SECRET:change-this-to-a-strong-secret-in-production}  # 生产环境必须通过环境变量设置强密钥
+  expiration: 7200000               # Access Token 过期时间：2 小时
+  refresh-expiration: 604800000     # Refresh Token 过期时间：7 天
 
+# ---- AI 模型配置 ----
 ai:
-  default-adapter: ${AI_DEFAULT_ADAPTER:ollama}
+  default-adapter: ${AI_DEFAULT_ADAPTER:ollama}  # 可通过环境变量覆盖默认提供商
 
+# ---- 设备协议配置（环境变量注入）----
 protocol:
   default: ${PROTOCOL_DEFAULT:mqtt}
   mqtt:
@@ -65,12 +81,14 @@ protocol:
       keep-alive: true
     max-frame-length: 65536
 
+# ---- 限流配置（生产环境放宽）----
 rate-limit:
   enabled: true
-  capacity: 100
+  capacity: 100           # 每分钟 100 次（生产环境比开发环境更宽松）
   window-seconds: 60
 
+# ---- 日志级别（生产环境降低日志量）----
 logging:
   level:
-    com.example.smarthub: info
-    org.springframework.security: warn
+    com.example.smarthub: info              # 应用日志：INFO（减少 DEBUG 输出）
+    org.springframework.security: warn       # Security 日志：WARN（仅记录告警）

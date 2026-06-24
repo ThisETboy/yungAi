@@ -8,6 +8,10 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
+/**
+ * 登录响应 DTO
+ * 返回 access token、refresh token 和过期时间
+ */
 @Data
 @Builder
 @NoArgsConstructor

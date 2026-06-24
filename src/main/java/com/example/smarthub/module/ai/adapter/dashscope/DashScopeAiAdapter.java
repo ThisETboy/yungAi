@@ -11,6 +11,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 阿里云 DashScope (通义千问) 适配器
+ *
+ * 使用百炼 API 进行流式聊天
+ * API 文档: https://help.aliyun.com/zh/model-studio/developer-reference/api-reference
+ *
+ * 注意：DashScope 的流式响应需要设置 incremental_output=true 参数
+ */
 @Slf4j
 @Component
 public class DashScopeAiAdapter implements AiModelAdapter {
@@ -34,6 +42,12 @@ public class DashScopeAiAdapter implements AiModelAdapter {
         return "dashscope";
     }
 
+    /**
+     * DashScope 流式聊天
+     * 请求格式: POST /api/v1/services/aigc/text-generation/generation
+     *           { model, input: { messages }, parameters: { incremental_output: true } }
+     * 响应格式: SSE 事件流，每个事件包含 { output: { text: "..." } }
+     */
     @Override
     public Flux<String> chatStream(String model, String systemPrompt, String userMessage) {
         Map<String, Object> input = new HashMap<>();
@@ -45,6 +59,7 @@ public class DashScopeAiAdapter implements AiModelAdapter {
         Map<String, Object> body = new HashMap<>();
         body.put("model", model);
         body.put("input", input);
+        // 增量输出：流式模式下逐段返回
         body.put("parameters", Map.of("incremental_output", true));
 
         return webClient.post()
@@ -55,6 +70,10 @@ public class DashScopeAiAdapter implements AiModelAdapter {
                 .doOnError(err -> log.error("DashScope stream error: {}", err.getMessage()));
     }
 
+    /**
+     * DashScope 阻塞式聊天
+     * 等待完整响应后从 output.text 数组中提取文本
+     */
     @Override
     public String chatBlocking(String model, String systemPrompt, String userMessage) {
         Map<String, Object> input = new HashMap<>();
@@ -93,6 +112,9 @@ public class DashScopeAiAdapter implements AiModelAdapter {
         }
     }
 
+    /**
+     * 健康检查 — 调用 DashScope 模型列表接口
+     */
     @Override
     public boolean isAvailable() {
         try {

@@ -5,6 +5,11 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+/**
+ * 用户创建/更新请求 DTO
+ * - 创建时：必填 username + password
+ * - 更新时：必填 id，password 可选（留空表示不修改密码）
+ */
 @Data
 @Schema(description = "用户创建/更新请求")
 public class UserRequest {

@@ -22,6 +22,15 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * 用户服务实现
+ *
+ * 主要职责：
+ * - 用户 CRUD（密码 BCrypt 加密）
+ * - 分页查询 + 用户名模糊搜索
+ * - 用户-角色多对多关系管理
+ * - 用户名唯一性校验
+ */
 @Service
 @RequiredArgsConstructor
 public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> implements SysUserService {
@@ -30,6 +39,13 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     private final SysRoleMapper roleMapper;
     private final PasswordEncoder passwordEncoder;
 
+    /**
+     * 分页查询用户列表
+     * @param current  页码
+     * @param size     每页数量
+     * @param username 可选过滤（模糊匹配）
+     * @return 分页结果，包含角色名称列表
+     */
     @Override
     public IPage<UserVO> pageUsers(int current, int size, String username) {
         LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
@@ -37,9 +53,11 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
                 .orderByDesc(SysUser::getCreateTime);
         Page<SysUser> pageParam = new Page<>(current, size);
         Page<SysUser> result = page(pageParam, wrapper);
+        // 将实体转为 VO，并填充角色名称
         return result.convert(this::toVO);
     }
 
+    /** 根据 ID 查询用户详情，用户不存在时抛出 BizException */
     @Override
     public UserVO getUserById(Long id) {
         SysUser user = getById(id);
@@ -47,6 +65,11 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         return toVO(user);
     }
 
+    /**
+     * 创建用户
+     * 1. 校验用户名是否已存在
+     * 2. 密码 BCrypt 加密后存储
+     */
     @Override
     @Transactional
     public void createUser(UserRequest request) {
@@ -62,6 +85,11 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         save(user);
     }
 
+    /**
+     * 更新用户信息
+     * - 非空密码字段会重新加密存储
+     * - nickname/email/phone/avatar/status 直接覆盖
+     */
     @Override
     @Transactional
     public void updateUser(UserRequest request) {
@@ -78,6 +106,10 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         updateById(user);
     }
 
+    /**
+     * 删除用户（逻辑删除）
+     * 同时清理用户-角色关联
+     */
     @Override
     @Transactional
     public void deleteUser(Long id) {
@@ -85,6 +117,10 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         userRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>().eq(SysUserRole::getUserId, id));
     }
 
+    /**
+     * 为用户分配角色
+     * 先清空该用户的所有角色关联，再批量插入新关联
+     */
     @Override
     @Transactional
     public void assignRoles(Long userId, Long[] roleIds) {
@@ -99,6 +135,10 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         }
     }
 
+    /**
+     * 校验用户名是否已存在
+     * @param excludeId 排除指定用户ID（用于更新时的重名校验）
+     */
     @Override
     public boolean usernameExists(String username, Long excludeId) {
         LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<SysUser>()
@@ -109,6 +149,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         return count(wrapper) > 0;
     }
 
+    /** 将 SysUser 实体转换为 UserVO，并填充角色名称列表 */
     private UserVO toVO(SysUser user) {
         UserVO vo = new UserVO();
         vo.setId(user.getId());
@@ -120,8 +161,29 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         vo.setStatus(user.getStatus());
         vo.setCreateTime(user.getCreateTime());
 
+        // 查询该用户的所有角色名称
         List<SysRole> roles = roleMapper.selectRolesByUserId(user.getId());
         vo.setRoles(roles.stream().map(SysRole::getRoleName).collect(Collectors.toList()));
         return vo;
+    }
+
+    /**
+     * 根据用户名查询用户（供 Spring Security 认证使用）
+     * @throws UsernameNotFoundException 用户不存在或已禁用
+     */
+    @Override
+    public SysUser findByUsername(String username) {
+        SysUser user = getOne(
+                new LambdaQueryWrapper<SysUser>()
+                        .eq(SysUser::getUsername, username)
+                        .eq(SysUser::getDeleted, 0)
+        );
+        if (user == null) {
+            throw new org.springframework.security.core.userdetails.UsernameNotFoundException("用户不存在: " + username);
+        }
+        if (user.getStatus() != null && user.getStatus() == 0) {
+            throw new org.springframework.security.core.userdetails.UsernameNotFoundException("账户已被禁用: " + username);
+        }
+        return user;
     }
 }

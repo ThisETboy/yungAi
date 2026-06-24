@@ -13,12 +13,19 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * JWT 工具类 — 负责令牌的生成、解析、验证
+ * 使用 HMAC-SHA256 签名算法
+ */
 @Slf4j
 @Component
 public class JwtUtil {
 
+    /** HMAC-SHA256 密钥 */
     private final SecretKey key;
+    /** Access Token 过期时间（毫秒） */
     private final long expiration;
+    /** Refresh Token 过期时间（毫秒） */
     private final long refreshExpiration;
 
     public JwtUtil(
@@ -30,6 +37,13 @@ public class JwtUtil {
         this.refreshExpiration = refreshExpiration;
     }
 
+    /**
+     * 生成 Access Token
+     * @param userId    用户ID
+     * @param username  用户名
+     * @param claims    额外自定义声明
+     * @return JWT 字符串
+     */
     public String generateToken(Long userId, String username, Map<String, Object> claims) {
         Map<String, Object> allClaims = new HashMap<>();
         allClaims.putAll(claims);
@@ -44,6 +58,9 @@ public class JwtUtil {
                 .compact();
     }
 
+    /**
+     * 生成 Refresh Token（仅包含 username）
+     */
     public String generateRefreshToken(String username) {
         return Jwts.builder()
                 .subject(username)
@@ -53,6 +70,10 @@ public class JwtUtil {
                 .compact();
     }
 
+    /**
+     * 解析并返回 Claims
+     * @throws Exception Token 无效时抛出
+     */
     public Claims parseToken(String token) {
         return Jwts.parser()
                 .verifyWith(key)
@@ -61,15 +82,21 @@ public class JwtUtil {
                 .getPayload();
     }
 
+    /** 从 Token 中提取用户ID */
     public Long getUserId(String token) {
         Claims claims = parseToken(token);
         return claims.get("userId", Long.class);
     }
 
+    /** 从 Token 中提取用户名 */
     public String getUsername(String token) {
         return parseToken(token).getSubject();
     }
 
+    /**
+     * 检查 Token 是否已过期
+     * @return true=已过期, false=未过期
+     */
     public boolean isTokenExpired(String token) {
         try {
             return parseToken(token).getExpiration().before(new Date());
@@ -78,6 +105,9 @@ public class JwtUtil {
         }
     }
 
+    /**
+     * 验证 Token 合法性（未过期且签名正确）
+     */
     public boolean validateToken(String token) {
         try {
             parseToken(token);

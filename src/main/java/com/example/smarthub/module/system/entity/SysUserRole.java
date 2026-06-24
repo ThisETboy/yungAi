@@ -6,6 +6,10 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
+/**
+ * 用户角色关联实体 — 对应 sys_user_role 表
+ * 联合唯一索引：user_id + role_id
+ */
 @Data
 @TableName("sys_user_role")
 @Schema(description = "用户角色关联")

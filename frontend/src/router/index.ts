@@ -21,6 +21,13 @@ const constantRoutes: RouteRecordRaw[] = [
         component: () => import('@/views/dashboard/Dashboard.vue'),
         meta: { title: '首页' },
       },
+      // 协议管理页面 — 静态路由（不受动态菜单控制）
+      {
+        path: 'protocol',
+        name: 'ProtocolManage',
+        component: () => import('@/views/protocol/ProtocolManage.vue'),
+        meta: { title: '协议管理' },
+      },
     ],
   },
   {

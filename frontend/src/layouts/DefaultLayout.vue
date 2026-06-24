@@ -24,6 +24,13 @@
           <el-menu-item index="/ai/chat">AI 聊天</el-menu-item>
           <el-menu-item index="/ai/codegen">代码生成</el-menu-item>
         </el-sub-menu>
+        <el-sub-menu index="protocol">
+          <template #title>
+            <el-icon><Connection /></el-icon>
+            <span>协议管理</span>
+          </template>
+          <el-menu-item index="/protocol">协议管理</el-menu-item>
+        </el-sub-menu>
       </el-menu>
     </el-aside>
     <el-container>

@@ -38,18 +38,19 @@ const stats = ref({ users: 0, roles: 0, aiModels: 0, protocols: 0 })
 
 onMounted(async () => {
   try {
-    const [users, roles, aiModels] = await Promise.all([
+    const [users, roles, aiModels, protocolStatus] = await Promise.all([
       request.get('/users', { params: { current: 1, size: 1 } }),
       request.get('/roles'),
       request.get('/ai/models'),
+      request.get('/protocol/status'),
     ])
     stats.value.users = users?.total || 0
     stats.value.roles = Array.isArray(roles) ? roles.length : 0
     stats.value.aiModels = Object.keys(aiModels || {}).length
+    // 统计在线协议数量
+    stats.value.protocols = Object.values(protocolStatus || {}).filter(Boolean).length
   } catch {
     // ignore dashboard errors
   }
-  // 协议数量固定为 2（MQTT + TCP）
-  stats.value.protocols = 2
 })
 </script>

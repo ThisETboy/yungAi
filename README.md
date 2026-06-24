@@ -258,6 +258,26 @@ ProtocolAdapter (接口)
 - 异步写入数据库，不阻塞业务
 - 独立日志文件 `request.log`
 
+### 限流模块
+
+- **@RateLimit 注解**: 基于 Redis 滑动窗口限流
+- 支持按 IP/用户名/接口等维度限流（SpEL 表达式）
+- 登录接口默认限流：每分钟 10 次
+- 可通过 `rate-limit.enabled` 配置全局开关
+
+## 前端页面一览
+
+| 页面 | 路由 | 对应后端接口 | 功能 |
+|------|------|-------------|------|
+| 登录 | `/login` | `POST /api/auth/login` | 用户名密码登录 |
+| 首页 | `/dashboard` | `GET /api/users`, `/roles`, `/ai/models`, `/protocol/status` | 统计概览 |
+| 用户管理 | `/system/user` | `GET/POST/PUT/DELETE /api/users` | 用户 CRUD + 分页 + 搜索 |
+| 角色管理 | `/system/role` | `GET/POST/DELETE /api/roles` | 角色 CRUD |
+| 菜单管理 | `/system/menu` | `GET/POST/PUT/DELETE /api/menus` | 菜单树 CRUD |
+| AI 聊天 | `/ai/chat` | `POST /api/ai/chat/stream`, `GET /api/ai/models` | SSE 流式聊天 + Markdown 渲染 |
+| 代码生成 | `/ai/codegen` | `POST /api/ai/chat/stream` | AI 驱动代码生成 |
+| 协议管理 | `/protocol` | `GET/POST /api/protocol/*` | 协议启停 + 设备数据收发 |
+
 ## 配置说明
 
 ### 多环境配置

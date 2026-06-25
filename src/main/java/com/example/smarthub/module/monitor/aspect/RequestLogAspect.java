@@ -65,6 +65,7 @@ public class RequestLogAspect {
         reqLog.setUrl(url);
         reqLog.setIpAddress(ip);
         reqLog.setModule(module);
+        reqLog.setUserAgent(request != null ? request.getHeader("User-Agent") : "");
         reqLog.setCreateTime(LocalDateTime.now());
 
         // 记录请求参数（简单处理：取方法参数）
@@ -145,7 +146,7 @@ public class RequestLogAspect {
         return "unknown";
     }
 
-    /** 格式化方法参数为可读字符串 */
+    /** 格式化方法参数为可读字符串（自动脱敏密码等敏感字段） */
     private String formatParams(Object[] args) {
         if (args == null || args.length == 0) {
             return "";
@@ -153,9 +154,14 @@ public class RequestLogAspect {
         // 只取前两个参数，避免过长
         return Arrays.stream(args)
                 .limit(2)
-                .map(arg -> arg != null ? arg.toString() : "null")
+                .map(arg -> arg != null ? maskSensitiveFields(arg.toString()) : "null")
                 .reduce((a, b) -> a + ", " + b)
                 .orElse("");
+    }
+
+    /** 脱敏敏感字段：将 password 替换为 *** */
+    private String maskSensitiveFields(String str) {
+        return str.replaceAll("(?i)(password|passwd|secret|token)[\"']?\\s*[:=]\\s*[\"']?(.+?)(\"|$)", "$1=***");
     }
 
     /** 截断字符串 */

@@ -104,9 +104,14 @@ async function sendMessage() {
   streaming.value = true
 
   try {
+    // 从 localStorage 获取 JWT token
+    const token = localStorage.getItem('token')
     const response = await fetch('/api/ai/chat/stream', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token ? `Bearer ${token}` : '',
+      },
       body: JSON.stringify({
         message: text,
         provider: selectedProvider.value,

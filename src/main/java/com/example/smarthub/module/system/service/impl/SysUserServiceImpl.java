@@ -99,7 +99,9 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         user.setEmail(request.getEmail());
         user.setPhone(request.getPhone());
         user.setAvatar(request.getAvatar());
-        user.setStatus(request.getStatus());
+        if (request.getStatus() != null) {
+            user.setStatus(request.getStatus());
+        }
         if (request.getPassword() != null && !request.getPassword().isEmpty()) {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
         }

@@ -93,8 +93,10 @@ public class AiChatServiceImpl implements AiChatService {
 
                 // 4. 保存用户消息到数据库
                 final Long convId = reqCopy.getConversationId();
+                // 从请求中获取 userId（由 Controller 从 SecurityContext 设置）
+                final Long userId = reqCopy.getUserId() != null ? reqCopy.getUserId() : 1L;
                 final Long actualConvId = (convId == null)
-                        ? createConversation("新对话", reqCopy.getModelId(), 1L)
+                        ? createConversation("新对话", reqCopy.getModelId(), userId)
                         : convId;
                 saveUserMessage(actualConvId, reqCopy.getMessage(), model);
 
@@ -258,5 +260,13 @@ public class AiChatServiceImpl implements AiChatService {
             log.warn("Failed to load context messages: {}", e.getMessage());
             return "";
         }
+    }
+
+    /**
+     * 根据 ID 查询会话（用于权限校验）
+     */
+    @Override
+    public AiConversation getConversationById(Long conversationId) {
+        return conversationMapper.selectById(conversationId);
     }
 }

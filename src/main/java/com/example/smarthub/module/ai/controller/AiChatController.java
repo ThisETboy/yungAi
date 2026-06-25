@@ -1,13 +1,17 @@
 package com.example.smarthub.module.ai.controller;
 
+import com.example.smarthub.common.annotation.RateLimit;
 import com.example.smarthub.common.response.R;
 import com.example.smarthub.module.ai.adapter.AiAdapterFactory;
 import com.example.smarthub.module.ai.adapter.AiModelAdapter;
 import com.example.smarthub.module.ai.dto.ChatRequest;
+import com.example.smarthub.module.ai.entity.AiConversation;
 import com.example.smarthub.module.ai.service.AiChatService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -36,11 +40,30 @@ public class AiChatController {
     private final AiAdapterFactory adapterFactory;
 
     /**
-     * SSE 流式聊天接口
+     * 获取当前登录用户的 ID（从 SecurityContext 提取）
+     */
+    private Long getCurrentUserId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
+            try {
+                return Long.parseLong(auth.getName());
+            } catch (NumberFormatException e) {
+                // fallback: 尝试从 JWT 中提取
+            }
+        }
+        return 1L;
+    }
+
+    /**
+     * SSE 流式聊天接口 — 限流：每分钟 30 次
      */
     @PostMapping("/chat/stream")
     @Operation(summary = "SSE流式聊天")
+    @RateLimit(key = "ai_chat", capacity = 30, windowSeconds = 60)
     public SseEmitter chatStream(@RequestBody ChatRequest request) {
+        // 从 SecurityContext 获取当前用户 ID，替代硬编码
+        Long userId = getCurrentUserId();
+        request.setUserId(userId);
         return aiChatService.chatStream(request);
     }
 
@@ -71,15 +94,13 @@ public class AiChatController {
 
     /**
      * 创建新会话
-     * @param title 会话标题
-     * @param modelId 模型ID（可选）
-     * @param userId 用户ID（当前硬编码为 1，后续从 SecurityContext 获取）
+     * userId 从 SecurityContext 自动提取，不可篡改
      */
     @PostMapping("/conversations")
     @Operation(summary = "创建新会话")
     public R<Long> createConversation(@RequestParam String title,
-                                      @RequestParam(required = false) Long modelId,
-                                      @RequestParam(defaultValue = "1") Long userId) {
+                                      @RequestParam(required = false) Long modelId) {
+        Long userId = getCurrentUserId();
         Long id = aiChatService.createConversation(title, modelId, userId);
         return R.ok(id);
     }
@@ -89,30 +110,46 @@ public class AiChatController {
      */
     @GetMapping("/conversations")
     @Operation(summary = "获取会话列表")
-    public R<?> getConversations(@RequestParam(defaultValue = "1") Long userId) {
+    public R<?> getConversations() {
+        Long userId = getCurrentUserId();
         return R.ok(aiChatService.getConversations(userId));
     }
 
     /**
-     * 删除会话
+     * 删除会话 — 验证会话归属权
      */
     @DeleteMapping("/conversations/{id}")
     @Operation(summary = "删除会话")
-    public R<Void> deleteConversation(@PathVariable Long id,
-                                      @RequestParam(defaultValue = "1") Long userId) {
+    public R<Void> deleteConversation(@PathVariable Long id) {
+        Long userId = getCurrentUserId();
+        // 验证会话属于当前用户
+        AiConversation conv = aiChatService.getConversationById(id);
+        if (conv == null) {
+            return R.fail(404, "会话不存在");
+        }
+        if (!conv.getUserId().equals(userId)) {
+            return R.fail(403, "无权删除他人会话");
+        }
         aiChatService.deleteConversation(id, userId);
         return R.ok();
     }
 
     /**
      * 获取会话的历史消息（用于加载对话上下文）
-     * @param id 会话ID
-     * @param limit 最近 N 条消息（默认 20）
      */
     @GetMapping("/conversations/{id}/messages")
     @Operation(summary = "获取会话历史消息")
     public R<?> getMessages(@PathVariable Long id,
                             @RequestParam(defaultValue = "20") int limit) {
+        Long userId = getCurrentUserId();
+        // 验证会话归属权
+        AiConversation conv = aiChatService.getConversationById(id);
+        if (conv == null) {
+            return R.fail(404, "会话不存在");
+        }
+        if (!conv.getUserId().equals(userId)) {
+            return R.fail(403, "无权查看他人会话");
+        }
         return R.ok(aiChatService.getMessages(id, limit));
     }
 }

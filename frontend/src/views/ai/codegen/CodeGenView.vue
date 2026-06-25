@@ -59,10 +59,14 @@ async function generate() {
   loading.value = true
   result.value = ''
   try {
+    const token = localStorage.getItem('token')
     // 调用 AI 聊天接口，将描述作为系统提示词+用户消息
     const response = await fetch('/api/ai/chat/stream', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token ? `Bearer ${token}` : '',
+      },
       body: JSON.stringify({
         message: `请根据以下描述生成完整的前端+后端代码，包括 Controller、Service、Entity、Mapper、Vue 页面。请输出完整可运行的代码：\n\n${desc.value}`,
         provider: selectedProvider.value || undefined,

@@ -8,6 +8,7 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.expression.Expression;
 import org.springframework.expression.ExpressionParser;
@@ -40,6 +41,10 @@ public class RateLimitAspect {
 
     private final StringRedisTemplate redisTemplate;
 
+    /** 限流总开关 — 从 application.yml 的 rate-limit.enabled 读取 */
+    @Value("${rate-limit.enabled:false}")
+    private boolean rateLimitEnabled;
+
     /** SpEL 表达式解析器 */
     private static final ExpressionParser parser = new SpelExpressionParser();
 
@@ -48,10 +53,13 @@ public class RateLimitAspect {
      */
     @Around("@annotation(rateLimit) || @within(rateLimit)")
     public Object around(ProceedingJoinPoint joinPoint, RateLimit rateLimit) throws Throwable {
-        // 检查限流是否启用
+        // 检查限流是否启用（双重检查：配置 + Redis）
+        if (!rateLimitEnabled) {
+            return joinPoint.proceed();
+        }
         Object enabledObj = redisTemplate.opsForValue().get("ratelimit:enabled");
-        boolean enabled = enabledObj != null && Boolean.parseBoolean(enabledObj.toString());
-        if (!enabled) {
+        boolean redisEnabled = enabledObj != null && Boolean.parseBoolean(enabledObj.toString());
+        if (!redisEnabled) {
             return joinPoint.proceed();
         }
 

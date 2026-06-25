@@ -4,6 +4,7 @@
 
 ## 📋 目录
 
+- [环境准备](#环境准备)
 - [技术栈](#技术栈)
 - [项目结构](#项目结构)
 - [快速开始](#快速开始)
@@ -131,16 +132,223 @@ smarthub/
     └── vite.config.ts             # Vite 配置
 ```
 
-## 快速开始
+## 环境准备
 
-### 前置条件
+> 本文档详细说明运行 SmartHub 所需的全部环境和依赖。按以下步骤准备即可。
 
-- JDK 17+
-- Maven 3.8+
-- Node.js 18+
-- MySQL 8.0
-- Redis
-- RabbitMQ（可选）
+### 一、必需环境
+
+#### 1. 开发语言与构建工具
+
+| 软件 | 最低版本 | 推荐版本 | 用途 | 下载链接 |
+|------|---------|---------|------|---------|
+| JDK | 17 | JDK 17 或 21 (Corretto/OpenJDK) | 后端编译运行 | [Oracle JDK](https://www.oracle.com/java/technologies/downloads/) / [OpenJDK](https://adoptium.net/) |
+| Maven | 3.8 | 3.9+ | 后端构建 | [Apache Maven](https://maven.apache.org/download.cgi) |
+| Node.js | 18 | 20 LTS | 前端构建运行 | [Node.js](https://nodejs.org/) |
+| npm | 9+ | 10+ | 前端包管理 | 随 Node.js 一起安装 |
+
+**验证安装：**
+```bash
+java -version       # 应显示 17.x 或更高
+mvn -version        # 应显示 3.8+
+node -v             # 应显示 18+
+npm -v              # 应显示 9+
+```
+
+#### 2. 数据库
+
+| 软件 | 最低版本 | 用途 | 默认端口 |
+|------|---------|------|---------|
+| MySQL | 8.0 | 主数据存储 | 3306 |
+
+**安装步骤（Windows）：**
+```bash
+# 方式一：下载安装包
+# 访问 https://dev.mysql.com/downloads/installer/ 下载 MySQL Installer
+# 安装时选择 "Developer Default" 或 "Server only"
+# 设置 root 密码为 root（与 application-dev.yml 一致）
+
+# 方式二：使用 Docker
+docker run --name smarthub-mysql \
+  -e MYSQL_ROOT_PASSWORD=root \
+  -e MYSQL_DATABASE=smarthub \
+  -p 3306:3306 \
+  -d mysql:8.0
+```
+
+**验证：**
+```bash
+mysql -u root -p -e "SELECT VERSION();"
+# 应返回 8.0.x
+```
+
+#### 3. 缓存服务
+
+| 软件 | 最低版本 | 用途 | 默认端口 |
+|------|---------|------|---------|
+| Redis | 6+ | 缓存 / 限流计数器 | 6379 |
+
+**安装步骤：**
+```bash
+# 方式一：Windows 安装
+# 访问 https://github.com/microsoftarchive/redis/releases 下载 Windows 版 MSI 安装包
+# 安装后默认以 Windows 服务运行
+
+# 方式二：使用 Docker
+docker run --name smarthub-redis \
+  -p 6379:6379 \
+  -d redis:7-alpine
+
+# 方式三：macOS
+brew install redis
+brew services start redis
+```
+
+**验证：**
+```bash
+redis-cli ping
+# 应返回 PONG
+```
+
+---
+
+### 二、可选环境
+
+#### 1. 消息队列
+
+| 软件 | 最低版本 | 用途 | 默认端口 |
+|------|---------|------|---------|
+| RabbitMQ | 3+ | 消息队列（预留） | 5672 (AMQP) / 15672 (管理界面) |
+
+**安装步骤：**
+```bash
+# 使用 Docker
+docker run --name smarthub-rabbitmq \
+  -p 5672:5672 -p 15672:15672 \
+  -e RABBITMQ_DEFAULT_USER=guest \
+  -e RABBITMQ_DEFAULT_PASS=guest \
+  -d rabbitmq:3-management-alpine
+```
+
+> 注：当前项目中 RabbitMQ 已配置但未实际使用，仅预留扩展。
+
+#### 2. 搜索引擎
+
+| 软件 | 最低版本 | 用途 | 默认端口 |
+|------|---------|------|---------|
+| Elasticsearch | 8.0 | 全文搜索（预留） | 9200 |
+| Kibana | 8.0 | ES 可视化（预留） | 5601 |
+
+**安装步骤：**
+```bash
+# 使用 Docker Compose 一键启动
+docker run --name smarthub-es \
+  -e "discovery.type=single-node" \
+  -e "xpack.security.enabled=false" \
+  -e "ES_JAVA_OPTS=-Xms512m -Xmx512m" \
+  -p 9200:9200 \
+  -d elasticsearch:8.15.0
+
+docker run --name smarthub-kibana \
+  -e ELASTICSEARCH_HOSTS=http://localhost:9200 \
+  -p 5601:5601 \
+  --depends-on smarthub-es \
+  -d kibana:8.15.0
+```
+
+> 注：ES 和 Kibana 当前仅预留配置，实际业务未使用。
+
+---
+
+### 三、端口总览
+
+| 服务 | 端口 | 用途 | 必需 |
+|------|------|------|------|
+| MySQL | 3306 | 数据库 | ✅ 必需 |
+| Redis | 6379 | 缓存 / 限流 | ✅ 必需 |
+| RabbitMQ | 5672 | 消息队列 | ⭕ 可选 |
+| RabbitMQ Admin | 15672 | 管理界面 | ⭕ 可选 |
+| Elasticsearch | 9200 | 搜索引擎 | ⭕ 可选 |
+| Kibana | 5601 | 可视化 | ⭕ 可选 |
+| 后端 API | 8080 | Spring Boot 服务 | ✅ 必需 |
+| 前端开发 | 5173 | Vite 开发服务器 | ✅ 必需 |
+| 前端生产 | 80 | Nginx 静态资源 | ⭕ 可选 |
+| API 文档 | 8080/doc.html | Knife4j 文档 | ✅ 必需 |
+
+---
+
+### 四、快速一键启动（推荐）
+
+如果安装了 **Docker + Docker Compose**，一条命令启动所有依赖：
+
+```bash
+cd smarthub
+docker-compose up -d
+```
+
+这将自动启动：MySQL、Redis、RabbitMQ、Elasticsearch、Kibana。
+
+等待所有服务就绪后（约 1-2 分钟）：
+```bash
+# 检查服务状态
+docker-compose ps
+
+# 查看 MySQL 是否就绪
+docker-compose logs mysql | grep "ready for connections"
+```
+
+---
+
+### 五、环境变量配置
+
+生产环境部署时，以下配置通过环境变量注入（见 `application-prod.yml`）：
+
+| 环境变量 | 说明 | 默认值 |
+|---------|------|--------|
+| `DB_HOST` | 数据库主机 | `localhost` |
+| `DB_PORT` | 数据库端口 | `3306` |
+| `DB_NAME` | 数据库名 | `smarthub` |
+| `DB_USERNAME` | 数据库用户名 | `root` |
+| `DB_PASSWORD` | 数据库密码 | （空） |
+| `REDIS_HOST` | Redis 主机 | `localhost` |
+| `REDIS_PASSWORD` | Redis 密码 | （空） |
+| `JWT_SECRET` | JWT 签名密钥 | ⚠️ 必须修改 |
+| `AI_ANTHROPIC_KEY` | Anthropic API Key | 占位符 |
+| `AI_DASHSCOPE_KEY` | 阿里云 API Key | 占位符 |
+| `AI_DEEPSEEK_KEY` | DeepSeek API Key | 占位符 |
+| `LOG_PATH` | 日志输出目录 | `./logs` |
+
+---
+
+### 六、常见问题
+
+**Q: MySQL 连接失败？**
+```
+A: 检查 MySQL 是否运行：mysql -u root -p
+   确认 application-dev.yml 中的 url、username、password 与实际一致
+   确认 MySQL 允许远程连接（如需）
+```
+
+**Q: Redis 连接失败？**
+```
+A: 检查 Redis 是否运行：redis-cli ping
+   确认 application-dev.yml 中的 host、port 与实际一致
+```
+
+**Q: 后端启动报错 "Could not resolve placeholder 'rate-limit.enabled'"？**
+```
+A: 检查 application-dev.yml 中 rate-limit 配置块是否存在
+   确认 spring.profiles.active=dev
+```
+
+**Q: 前端开发服务器端口 5173 被占用？**
+```
+A: 修改 vite.config.ts 中的 server.port 配置
+   或使用 npx vite --port 3000 指定端口
+```
+
+
+## 启动项目
 
 ### 1. 后端启动
 
@@ -148,12 +356,12 @@ smarthub/
 # 编译打包
 mvn clean package -DskipTests
 
-# 启动（默认使用 dev 配置）
+# 开发模式启动（默认使用 dev 配置）
 mvn spring-boot:run
 # 或
 java -jar target/smarthub-0.0.1-SNAPSHOT.jar
 
-# 服务运行在 http://localhost:8080
+# 后端运行在 http://localhost:8080
 ```
 
 ### 2. 前端启动
@@ -178,7 +386,7 @@ npm run build
 | admin | admin123 | 管理员（全部权限） |
 | user | user123 | 普通用户（基础功能） |
 
-## 数据库初始化
+### 数据库初始化
 
 项目使用 SQL 脚本初始化数据库，执行顺序如下：
 
@@ -254,7 +462,8 @@ ProtocolAdapter (接口)
 ### 监控模块
 
 - **RequestLogAspect**: AOP 切面自动拦截所有 Controller 请求
-- 记录：IP、方法、URL、耗时、模块、操作用户、是否异常
+- 记录：IP、方法、URL、耗时、模块、操作用户、是否异常、User-Agent
+- 自动脱敏：请求日志中 password/secret/token 等字段会被替换为 `***`
 - 异步写入数据库，不阻塞业务
 - 独立日志文件 `request.log`
 
@@ -264,6 +473,7 @@ ProtocolAdapter (接口)
 - 支持按 IP/用户名/接口等维度限流（SpEL 表达式）
 - 登录接口默认限流：每分钟 10 次
 - 可通过 `rate-limit.enabled` 配置全局开关
+- 双重开关：application.yml 配置 + Redis 运行时开关
 
 ## 前端页面一览
 

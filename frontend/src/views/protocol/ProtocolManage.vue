@@ -105,6 +105,8 @@ async function stopAll() {
 }
 
 async function startProtocol(name: string) {
+  // 单个协议启动/停止：调用 start-all/stop-all（当前后端仅支持批量操作）
+  // 后续可扩展为单个协议启停接口
   loading.value = true
   try {
     await request.post('/protocol/start-all')

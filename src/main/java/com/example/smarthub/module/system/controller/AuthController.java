@@ -6,6 +6,7 @@ import com.example.smarthub.common.util.JwtUtil;
 import com.example.smarthub.module.system.dto.LoginRequest;
 import com.example.smarthub.module.system.dto.LoginResponse;
 import com.example.smarthub.module.system.entity.SysMenu;
+import com.example.smarthub.module.system.entity.SysUser;
 import com.example.smarthub.module.system.mapper.SysRoleMapper;
 import com.example.smarthub.module.system.service.SysUserService;
 import com.example.smarthub.module.system.vo.UserInfoVO;
@@ -119,16 +120,10 @@ public class AuthController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth.getName();
 
-        // 从 Token 中提取 userId，失败则回退到 1
-        String authHeader = request.getHeader("Authorization");
-        Long userId = 1L;
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            try {
-                userId = jwtUtil.getUserId(authHeader.substring(7));
-            } catch (Exception e) {
-                // fallback
-            }
-        }
+        // 从 SecurityContext 中获取经过认证的用户信息
+        // userId 通过 SysUserMapper 查询数据库获取，不使用 JWT 中的 userId（防止篡改）
+        SysUser currentUser = sysUserService.findByUsername(username);
+        Long userId = currentUser.getId();
 
         UserInfoVO vo = new UserInfoVO();
         vo.setUsername(username);

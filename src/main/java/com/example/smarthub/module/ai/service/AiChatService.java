@@ -40,4 +40,10 @@ public interface AiChatService {
      * @param limit 最近 N 条消息（默认 20）
      */
     java.util.List<?> getMessages(Long conversationId, int limit);
+
+    /**
+     * 根据 ID 查询会话（用于权限校验）
+     * @return 会话实体，不存在返回 null
+     */
+    com.example.smarthub.module.ai.entity.AiConversation getConversationById(Long conversationId);
 }

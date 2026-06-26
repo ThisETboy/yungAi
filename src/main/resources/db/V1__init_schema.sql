@@ -23,6 +23,8 @@ CREATE TABLE `sys_user` (
     `deleted`      TINYINT      NOT NULL DEFAULT 0 COMMENT '逻辑删除(0=未删除,1=已删除)',
     `create_time`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `update_time`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `create_by`    VARCHAR(64)  DEFAULT '' COMMENT '创建人',
+    `update_by`    VARCHAR(64)  DEFAULT '' COMMENT '更新人',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_username` (`username`)
 ) ENGINE=InnoDB COMMENT='用户表';
@@ -38,6 +40,8 @@ CREATE TABLE `sys_role` (
     `deleted`     TINYINT      NOT NULL DEFAULT 0 COMMENT '逻辑删除',
     `create_time` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `update_time` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `create_by`   VARCHAR(64)  DEFAULT '' COMMENT '创建人',
+    `update_by`   VARCHAR(64)  DEFAULT '' COMMENT '更新人',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_role_code` (`role_code`)
 ) ENGINE=InnoDB COMMENT='角色表';
@@ -59,6 +63,8 @@ CREATE TABLE `sys_menu` (
     `deleted`     TINYINT       NOT NULL DEFAULT 0 COMMENT '逻辑删除',
     `create_time` DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `update_time` DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `create_by`   VARCHAR(64)   DEFAULT '' COMMENT '创建人',
+    `update_by`   VARCHAR(64)   DEFAULT '' COMMENT '更新人',
     PRIMARY KEY (`id`),
     KEY `idx_parent_id` (`parent_id`)
 ) ENGINE=InnoDB COMMENT='菜单表';
@@ -103,6 +109,8 @@ CREATE TABLE `ai_model_config` (
     `sort_order`      INT          NOT NULL DEFAULT 0 COMMENT '排序',
     `create_time`     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `update_time`     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `create_by`       VARCHAR(64)  DEFAULT '' COMMENT '创建人',
+    `update_by`       VARCHAR(64)  DEFAULT '' COMMENT '更新人',
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB COMMENT='AI模型配置表';
 
@@ -116,6 +124,8 @@ CREATE TABLE `ai_conversation` (
     `context`     TEXT        DEFAULT NULL COMMENT '上下文(JSON格式)',
     `create_time` DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `update_time` DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `create_by`   VARCHAR(64) DEFAULT '' COMMENT '创建人',
+    `update_by`   VARCHAR(64) DEFAULT '' COMMENT '更新人',
     PRIMARY KEY (`id`),
     KEY `idx_user_id` (`user_id`),
     CONSTRAINT `fk_conv_user` FOREIGN KEY (`user_id`) REFERENCES `sys_user` (`id`)
@@ -131,6 +141,8 @@ CREATE TABLE `ai_message` (
     `tokens_in`      INT          DEFAULT 0 COMMENT '输入token数',
     `tokens_out`     INT          DEFAULT 0 COMMENT '输出token数',
     `model_used`     VARCHAR(64)  DEFAULT NULL COMMENT '使用的模型名快照',
+    `create_by`      VARCHAR(64)  DEFAULT '' COMMENT '创建人',
+    `update_by`      VARCHAR(64)  DEFAULT '' COMMENT '更新人',
     `create_time`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     KEY `idx_conversation` (`conversation_id`),

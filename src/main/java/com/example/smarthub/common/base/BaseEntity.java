@@ -26,12 +26,13 @@ public abstract class BaseEntity implements Serializable {
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
 
-    /** 创建人，插入时自动填充（当前由 MetaHandler 硬编码为 "system"） */
-    @TableField(fill = FieldFill.INSERT)
+    /** 创建人，插入时自动填充（当前由 MetaHandler 硬编码为 "system"）
+     * 注意：如果数据库表没有 create_by 列，设为 exist=false 避免 SQL 报错 */
+    @TableField(fill = FieldFill.INSERT, exist = false)
     private String createBy;
 
     /** 更新人，更新时自动填充 */
-    @TableField(fill = FieldFill.INSERT_UPDATE)
+    @TableField(fill = FieldFill.INSERT_UPDATE, exist = false)
     private String updateBy;
 
     /** 逻辑删除标记：0=未删除，1=已删除 */

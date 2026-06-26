@@ -14,7 +14,7 @@ spring:
     # 数据库地址：本地 smarthub 库，时区 Asia/Shanghai，允许公钥检索（用于 MySQL 8+ 密码认证）
     url: jdbc:mysql://localhost:3306/smarthub?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: root
-    password: root
+    password: 123456
 
   # ---- Redis 缓存 ----
   data:
@@ -27,7 +27,7 @@ spring:
   # ---- RabbitMQ 消息队列 ----
   rabbitmq:
     host: localhost
-    port: 5672
+    port: 15672
     username: guest
     password: guest
 

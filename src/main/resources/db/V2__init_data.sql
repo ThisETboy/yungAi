@@ -5,11 +5,11 @@ USE `smarthub`;
 
 -- 管理员用户 (密码: admin123, BCrypt加密)
 INSERT INTO `sys_user` (`id`, `username`, `password`, `nickname`, `email`, `status`) VALUES
-(1, 'admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', '超级管理员', 'admin@example.com', 1);
+(1, 'admin', '$2a$10$beLIpcEaiTry8scxEMfvtuibSNa0FWfcKqscglw59uSFSHa29XiCO', '超级管理员', 'admin@example.com', 1);
 
 -- 普通用户 (密码: user123)
 INSERT INTO `sys_user` (`id`, `username`, `password`, `nickname`, `email`, `status`) VALUES
-(2, 'user', '$2a$10$YhZHq.5TFqGXH2SZDi5sMO6rrO0S6KGfONVvJ1b3gcCvJqE5qGKzq', '普通用户', 'user@example.com', 1);
+(2, 'user', '$2a$10$byFm5D0nGgaenz9gnu9y4uy0XFC0RzDL0Kq6ezRL/tSQZqYaDhfvq', '普通用户', 'user@example.com', 1);
 
 -- 角色
 INSERT INTO `sys_role` (`id`, `role_code`, `role_name`, `description`) VALUES
@@ -49,14 +49,14 @@ INSERT INTO `sys_menu` (`id`, `parent_id`, `menu_type`, `menu_name`, `route_path
 (21, 3, 2, '代码生成', '/ai/codegen', 'ai/codegen/CodeGenView', 'code', 1, 'ai:codegen', 1);
 
 -- 角色菜单关联 (ADMIN 拥有所有菜单)
+-- id 复用菜单 id，role_id=1 表示管理员
 INSERT INTO `sys_role_permission` (`id`, `role_id`, `menu_id`)
-SELECT 0, 1, m.id FROM `sys_menu` m WHERE m.deleted = 0;
+SELECT m.id, 1, m.id FROM `sys_menu` m WHERE m.deleted = 0;
 
--- 普通用户只拥有基础菜单
+-- 普通用户只拥有基础菜单（AI 聊天和代码生成）
 INSERT INTO `sys_role_permission` (`id`, `role_id`, `menu_id`) VALUES
-(100, 2, 2),   -- AI 助手
-(101, 2, 20),  -- AI 聊天
-(102, 2, 3);   -- AI 代码生成
+(200, 2, 20),  -- 普通用户 -> AI 聊天菜单
+(201, 2, 21);  -- 普通用户 -> 代码生成菜单
 
 -- AI 模型配置
 INSERT INTO `ai_model_config` (`id`, `model_name`, `provider`, `endpoint_model`, `enabled`, `sort_order`) VALUES

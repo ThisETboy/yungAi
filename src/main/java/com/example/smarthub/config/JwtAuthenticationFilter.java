@@ -10,10 +10,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -40,7 +39,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final SysRoleMapper sysRoleMapper;
-    private final UserDetailsService userDetailsService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
@@ -63,10 +61,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String username = jwtUtil.getUsername(token);
         // 避免重复认证
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-            Long userId = jwtUtil.getUserId(token);
+            // 从 SecurityContext 获取已通过认证的用户（DaoAuthenticationProvider 已验证）
+            Authentication existingAuth = SecurityContextHolder.getContext().getAuthentication();
+            // 构造一个基础的 Authentication，只包含 username
+            var userDetails = org.springframework.security.core.userdetails.User.builder()
+                    .username(username)
+                    .password("")
+                    .authorities(java.util.Collections.emptyList())
+                    .build();
 
             // 从数据库加载该用户的角色和菜单权限
+            Long userId = jwtUtil.getUserId(token);
             List<SysRole> roles = sysRoleMapper.selectRolesByUserId(userId);
             List<SysMenu> menus = sysRoleMapper.selectMenusByUserId(userId);
 
@@ -77,7 +82,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             menus.stream()
                     .map(m -> new SimpleGrantedAuthority(m.getPerms()))
-                    .filter(p -> !p.getAuthority().isEmpty())
+                    .filter(p -> p.getAuthority() != null && !p.getAuthority().isEmpty())
                     .forEach(authorities::add);
 
             UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(

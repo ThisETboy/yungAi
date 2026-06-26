@@ -53,6 +53,10 @@ public class RateLimitAspect {
      */
     @Around("@annotation(rateLimit) || @within(rateLimit)")
     public Object around(ProceedingJoinPoint joinPoint, RateLimit rateLimit) throws Throwable {
+        // @within 匹配类级别注解时，如果类上没有注解，rateLimit 可能为 null
+        if (rateLimit == null) {
+            return joinPoint.proceed();
+        }
         // 检查限流是否启用（双重检查：配置 + Redis）
         if (!rateLimitEnabled) {
             return joinPoint.proceed();

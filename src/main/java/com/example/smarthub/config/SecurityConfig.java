@@ -27,6 +27,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.context.annotation.Configuration;
 
 import java.util.Arrays;
 import java.util.List;
@@ -43,6 +44,7 @@ import java.util.stream.Collectors;
  * - 在 UsernamePasswordAuthenticationFilter 之前插入 JWT 过滤器
  * - CORS 配置：允许前端开发服务器 (5173/3000) 跨域访问
  */
+@Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
@@ -50,7 +52,8 @@ public class SecurityConfig {
     private final SysRoleMapper sysRoleMapper;
     private final SysUserService sysUserService;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter, SysRoleMapper sysRoleMapper, SysUserService sysUserService) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter, SysRoleMapper sysRoleMapper,
+            @org.springframework.context.annotation.Lazy SysUserService sysUserService) {
         this.jwtAuthFilter = jwtAuthFilter;
         this.sysRoleMapper = sysRoleMapper;
         this.sysUserService = sysUserService;

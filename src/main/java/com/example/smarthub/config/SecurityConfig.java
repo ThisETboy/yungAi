@@ -80,6 +80,8 @@ public class SecurityConfig {
                 .requestMatchers("/doc.html", "/webjars/**", "/swagger-resources/**", "/v3/api-docs/**").permitAll()
                 // OPTIONS 预检请求放行
                 .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+                // 错误页面内部转发不需要认证
+                .requestMatchers("/error").permitAll()
                 // 其余所有请求必须认证
                 .anyRequest().authenticated()
             );

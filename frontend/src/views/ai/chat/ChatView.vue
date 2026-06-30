@@ -101,6 +101,9 @@ async function sendMessage() {
   messages.value.push({ role: 'user', content: text })
   scrollToBottom()
 
+  // 先放一个空的 assistant 消息
+  messages.value.push({ role: 'assistant', content: '' })
+
   streaming.value = true
 
   try {
@@ -118,16 +121,15 @@ async function sendMessage() {
       }),
     })
 
+    // 非 200 响应直接报错，不进入 reader 循环
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`)
+      const errorMsg = `请求失败 (HTTP ${response.status})`
+      throw new Error(errorMsg)
     }
 
     const reader = response.body!.getReader()
     const decoder = new TextDecoder()
     let assistantContent = ''
-
-    // 先放一个空的 assistant 消息
-    messages.value.push({ role: 'assistant', content: '' })
 
     // 超时控制：120 秒无响应则中断
     const timeout = new Promise((_, reject) =>
@@ -142,34 +144,49 @@ async function sendMessage() {
         ])
         if (done) break
 
-      const chunk = decoder.decode(value, { stream: true })
-      // SSE 格式: event: message\ndata: xxx
-      const lines = chunk.split('\n')
-      for (const line of lines) {
-        if (line.startsWith('data:')) {
-          const data = line.slice(5).trim()
-          if (data === '{"status":"complete"}') continue
-          try {
-            const parsed = JSON.parse(data)
-            // 不同提供商的 SSE 格式可能不同，尝试多种解析方式
-            const text = parsed.content || parsed.text || parsed.delta?.text || data
-            assistantContent += text
-          } catch {
-            assistantContent += data
+        const chunk = decoder.decode(value, { stream: true })
+        // SSE 格式: event: message\ndata: xxx
+        const lines = chunk.split('\n')
+        for (const line of lines) {
+          if (line.startsWith('data:')) {
+            const data = line.slice(5).trim()
+            if (data === '{"status":"complete"}') continue
+            try {
+              const parsed = JSON.parse(data)
+              // 不同提供商的 SSE 格式可能不同，尝试多种解析方式
+              const text = parsed.content || parsed.text || parsed.delta?.text || data
+              assistantContent += text
+            } catch {
+              assistantContent += data
+            }
           }
         }
-      }
 
-      // 实时更新最后一条 assistant 消息
-      messages.value[messages.value.length - 1] = {
-        role: 'assistant',
-        content: assistantContent,
+        // 实时更新最后一条 assistant 消息
+        messages.value[messages.value.length - 1] = {
+          role: 'assistant',
+          content: assistantContent,
+        }
+        scrollToBottom()
+      } catch (readErr: any) {
+        // reader.read() 抛出异常（如连接断开），不再继续循环
+        ElMessage.error(readErr.message || '流式读取失败')
+        messages.value[messages.value.length - 1] = {
+          role: 'assistant',
+          content: assistantContent || '抱歉，连接中断，无法获取回复。',
+        }
+        break
       }
-      scrollToBottom()
     }
   } catch (err: any) {
     ElMessage.error(err.message || '请求失败')
-    messages.value.push({ role: 'assistant', content: '抱歉，发生了错误。' })
+    // 确保最后一条消息是 assistant 的错误提示
+    if (messages.value[messages.value.length - 1]?.role === 'assistant') {
+      messages.value[messages.value.length - 1] = {
+        role: 'assistant',
+        content: '抱歉，发生了错误。',
+      }
+    }
   } finally {
     streaming.value = false
   }

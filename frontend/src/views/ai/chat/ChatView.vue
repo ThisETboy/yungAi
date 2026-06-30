@@ -129,9 +129,18 @@ async function sendMessage() {
     // 先放一个空的 assistant 消息
     messages.value.push({ role: 'assistant', content: '' })
 
+    // 超时控制：120 秒无响应则中断
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('请求超时，请重试')), 120000)
+    )
+
     while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
+      try {
+        const { done, value } = await Promise.race([
+          reader.read(),
+          timeout,
+        ])
+        if (done) break
 
       const chunk = decoder.decode(value, { stream: true })
       // SSE 格式: event: message\ndata: xxx

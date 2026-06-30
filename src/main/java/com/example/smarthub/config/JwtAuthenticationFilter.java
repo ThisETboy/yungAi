@@ -81,8 +81,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     .collect(Collectors.toList());
 
             menus.stream()
+                    .filter(m -> m.getPerms() != null && !m.getPerms().isEmpty())
                     .map(m -> new SimpleGrantedAuthority(m.getPerms()))
-                    .filter(p -> p.getAuthority() != null && !p.getAuthority().isEmpty())
                     .forEach(authorities::add);
 
             UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(

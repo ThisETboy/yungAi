@@ -95,11 +95,16 @@ ai:
     deepseek:
       api-key: ${AI_DEEPSEEK_KEY:sk-placeholder}     # DeepSeek API Key
       base-url: https://api.deepseek.com             # DeepSeek API 地址
+    agnes:
+      api-key: ${AI_AGNES_KEY:sk-1PTyncpa4qiXmg90zfQlZ0KqbeI3IzVVCaAacA4r9tDbsCT9}  # Agnes AI API Key
+      base-url: https://apihub.agnes-ai.com         # Agnes AI API 地址
+      timeout: 60000                                   # 请求超时：60 秒
   models:
     ollama: qwen2.5:7b                   # Ollama 默认模型
     dashscope: qwen-plus                 # 通义千问 Plus
     anthropic: claude-sonnet-4-20250514  # Claude Sonnet
     deepseek: deepseek-chat              # DeepSeek Chat
+    agnes: agnes-2.0-flash               # Agnes Flash
 
 # ---- 限流配置 ----
 rate-limit:

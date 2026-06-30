@@ -5,24 +5,32 @@ import { useUserStore } from '@/store/user'
 /** 已注册的动态路由名称集合，用于登录后清理旧路由 */
 const registeredRouteNames = new Set<string>()
 
+/** 组件映射表 — key 对应菜单的 component 字段，value 是动态 import */
+const componentMap: Record<string, () => Promise<any>> = {
+  'system/user/UserManage': () => import('@/views/system/user/UserManage.vue'),
+  'system/role/RoleManage': () => import('@/views/system/role/RoleManage.vue'),
+  'system/menu/MenuManage': () => import('@/views/system/menu/MenuManage.vue'),
+  'ai/chat/ChatView': () => import('@/views/ai/chat/ChatView.vue'),
+  'ai/codegen/CodeGenView': () => import('@/views/ai/codegen/CodeGenView.vue'),
+}
+
 /**
  * 递归添加动态路由
  * 只添加 menuType === 2 的菜单项（页面级菜单）
- * 组件路径动态 import：system/user/UserManage → @/views/system/user/UserManage.vue
  */
 function addDynamicRoutes(menus: MenuNode[], router: Router) {
   menus.forEach(menu => {
     if (menu.menuType === 2 && menu.routePath) {
+      // 从映射表获取组件，找不到则用空组件兜底
+      const component = componentMap[menu.component] || (() => import('@/views/dashboard/Dashboard.vue'))
       const route: any = {
         path: menu.routePath,
         name: menu.menuName,
-        // 动态加载组件
-        component: () => import(`@/views/${menu.component}.vue`),
+        component,
         meta: { title: menu.menuName, perms: menu.perms },
       }
-      // 记录路由名称，方便后续清理
-      if (menu.name) {
-        registeredRouteNames.add(menu.name)
+      if (menu.menuName) {
+        registeredRouteNames.add(menu.menuName)
       }
       router.addRoute('Layout', route)
     }

@@ -138,10 +138,11 @@ async function sendMessage() {
 
     while (true) {
       try {
-        const { done, value } = await Promise.race([
+        const result: ReadableStreamReadResult<Uint8Array> = await Promise.race([
           reader.read(),
           timeout,
-        ])
+        ]) as any
+        const { done, value } = result
         if (done) break
 
         const chunk = decoder.decode(value, { stream: true })

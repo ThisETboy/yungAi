@@ -6,6 +6,7 @@ import com.example.smarthub.module.system.service.SysMenuService;
 import com.example.smarthub.module.system.vo.MenuTreeNodeVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -42,7 +43,7 @@ public class SysMenuController {
     @PostMapping
     @Operation(summary = "创建菜单")
     @PreAuthorize("hasAuthority('sys:menu:add')")
-    public R<Void> create(@RequestBody MenuRequest request) {
+    public R<Void> create(@Valid @RequestBody MenuRequest request) {
         menuService.createMenu(request);
         return R.ok();
     }
@@ -54,7 +55,7 @@ public class SysMenuController {
     @PutMapping("/{id}")
     @Operation(summary = "更新菜单")
     @PreAuthorize("hasAuthority('sys:menu:edit')")
-    public R<Void> update(@PathVariable Long id, @RequestBody MenuRequest request) {
+    public R<Void> update(@PathVariable Long id, @Valid @RequestBody MenuRequest request) {
         request.setId(id);
         menuService.updateMenu(request);
         return R.ok();

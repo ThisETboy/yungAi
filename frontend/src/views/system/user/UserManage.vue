@@ -35,9 +35,10 @@
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="创建时间" width="180" />
-        <el-table-column label="操作" width="220" fixed="right">
+        <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
             <el-button size="small" type="primary" @click="handleEdit(row)">编辑</el-button>
+            <el-button size="small" type="warning" @click="handleAssignRole(row)">分配角色</el-button>
             <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
@@ -86,6 +87,22 @@
         <el-button type="primary" @click="handleSubmit" :loading="submitLoading">确定</el-button>
       </template>
     </el-dialog>
+
+    <!-- 角色分配弹窗 -->
+    <el-dialog v-model="roleDialogVisible" title="分配角色" width="450px">
+      <el-transfer
+        v-model="selectedRoleIds"
+        :data="roleOptions"
+        :titles="['可选角色', '已选角色']"
+        :props="{ key: 'id', label: 'roleName' }"
+        filter-placeholder="搜索角色"
+        filter-position="left"
+      />
+      <template #footer>
+        <el-button @click="roleDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitRoleAssignment" :loading="roleSubmitLoading">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -93,6 +110,23 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import request from '@/api/request'
+
+// ---- 角色选项 ----
+const roleOptions = ref<{ id: number | string; roleName: string }[]>([])
+const selectedRoleIds = ref<(number | string)[]>([])
+const roleDialogVisible = ref(false)
+const roleAssignUserId = ref<number | null>(null)
+const roleSubmitLoading = ref(false)
+
+// 加载角色列表
+async function loadRoleOptions() {
+  try {
+    const res: any = await request.get('/roles')
+    roleOptions.value = res.map((r: any) => ({ id: r.id, roleName: r.roleName }))
+  } catch {
+    // ignore
+  }
+}
 
 // ---- 表格数据 ----
 const tableData = ref<any[]>([])
@@ -186,7 +220,7 @@ async function handleSubmit() {
   }
   submitLoading.value = true
   try {
-    const data = { ...formData }
+    const data: Record<string, any> = { ...formData }
     if (isEdit.value && !data.password) {
       delete data.password
     }
@@ -215,6 +249,30 @@ async function handleDelete(row: any) {
     fetchData()
   } catch {
     // cancelled or failed
+  }
+}
+
+// ---- 分配角色 ----
+function handleAssignRole(row: any) {
+  roleAssignUserId.value = row.id
+  // 回显当前角色
+  selectedRoleIds.value = row.roles?.map((r: any) => r.id || r) || []
+  roleDialogVisible.value = true
+  loadRoleOptions()
+}
+
+async function submitRoleAssignment() {
+  if (!roleAssignUserId.value) return
+  roleSubmitLoading.value = true
+  try {
+    await request.put(`/users/${roleAssignUserId.value}/roles`, selectedRoleIds.value)
+    ElMessage.success('角色分配成功')
+    roleDialogVisible.value = false
+    fetchData()
+  } catch {
+    // handled by interceptor
+  } finally {
+    roleSubmitLoading.value = false
   }
 }
 

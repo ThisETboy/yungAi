@@ -28,13 +28,28 @@ const constantRoutes: RouteRecordRaw[] = [
         component: () => import('@/views/protocol/ProtocolManage.vue'),
         meta: { title: '协议管理' },
       },
+      // 请求日志页面 — 静态路由
+      {
+        path: 'logs',
+        name: 'RequestLogManage',
+        component: () => import('@/views/monitor/RequestLogManage.vue'),
+        meta: { title: '请求日志' },
+      },
+      // AI 模型配置页面 — 静态路由
+      {
+        path: 'ai-models',
+        name: 'AiModelConfigManage',
+        component: () => import('@/views/ai/modelconfig/AiModelConfigManage.vue'),
+        meta: { title: 'AI模型配置' },
+      },
     ],
   },
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
-    component: () => import('@/views/login/Login.vue'),
-  },
+    component: () => import('@/views/error/NotFound.vue'),
+    meta: { title: '页面不存在' },
+  } as any,
 ]
 
 const router = createRouter({

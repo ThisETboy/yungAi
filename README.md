@@ -14,6 +14,7 @@
 - [配置说明](#配置说明)
 - [日志说明](#日志说明)
 - [Docker 部署](#docker-部署)
+- [更新日志](#更新日志)
 
 ## 技术栈
 
@@ -117,6 +118,7 @@ smarthub/
 │       ├── V1__init_schema.sql    # 数据库建表
 │       ├── V2__init_data.sql      # 种子数据
 │       └── V3__create_request_log.sql  # 请求日志表
+│       └── V4__add_new_permissions.sql  # 新增权限菜单
 └── frontend/                      # Vue 3 前端
     ├── src/
     │   ├── api/                   # Axios 封装 + 接口调用
@@ -399,6 +401,9 @@ mysql -u root -p < src/main/resources/db/V2__init_data.sql
 
 # 3. 创建请求日志表
 mysql -u root -p < src/main/resources/db/V3__create_request_log.sql
+
+# 4. 新增权限菜单（协议管理、AI 模型配置、请求日志等）
+mysql -u root -p < src/main/resources/db/V4__add_new_permissions.sql
 ```
 
 ### 数据库表清单
@@ -414,6 +419,7 @@ mysql -u root -p < src/main/resources/db/V3__create_request_log.sql
 | `ai_conversation` | AI 会话 |
 | `ai_message` | AI 消息 |
 | `request_log` | 请求日志 |
+| `ai_model_config` | AI 模型配置 |
 
 ## API 文档
 
@@ -467,6 +473,18 @@ ProtocolAdapter (接口)
 - 异步写入数据库，不阻塞业务
 - 独立日志文件 `request.log`
 
+### 新增权限标识
+
+| 权限标识 | 说明 | 对应接口 |
+|---------|------|---------|
+| `sys:protocol:list` | 查看协议状态 | GET /api/protocol/status |
+| `sys:protocol:send` | 向设备发送数据 | POST /api/protocol/send/{p}/{d} |
+| `sys:protocol:start` | 启动协议 | POST /api/protocol/start-all |
+| `sys:protocol:stop` | 停止协议 | POST /api/protocol/stop-all |
+| `sys:ai:chat` | AI 聊天 | POST /api/ai/chat/stream, 会话管理等 |
+| `sys:ai:model` | AI 模型管理 | GET/POST/DELETE /api/ai/models, 模型切换 |
+| `sys:log:list` | 查看请求日志 | GET /api/logs |
+
 ### 限流模块
 
 - **@RateLimit 注解**: 基于 Redis 滑动窗口限流
@@ -487,6 +505,8 @@ ProtocolAdapter (接口)
 | AI 聊天 | `/ai/chat` | `POST /api/ai/chat/stream`, `GET /api/ai/models` | SSE 流式聊天 + Markdown 渲染 |
 | 代码生成 | `/ai/codegen` | `POST /api/ai/chat/stream` | AI 驱动代码生成 |
 | 协议管理 | `/protocol` | `GET/POST /api/protocol/*` | 协议启停 + 设备数据收发 |
+| 请求日志 | `/logs` | `GET /api/logs` | 请求日志分页查询 + 详情 |
+| AI 模型配置 | `/ai-models` | `GET/POST/DELETE /api/ai/models` | AI 模型 CRUD 管理 |
 
 ## 配置说明
 
@@ -551,3 +571,30 @@ docker build -f Dockerfile.nginx -t smarthub-frontend ./frontend
 ## 许可证
 
 MIT
+
+## 更新日志
+
+### v0.2.0 — 2026-07-01
+
+**安全修复**
+- 角色列表改为返回 VO（`RoleVO`），防止敏感字段泄露
+- 协议管理、AI 模块所有接口补充 `@PreAuthorize` 权限控制
+- 所有 Controller 的 `@RequestBody` 参数补全 `@Valid` 校验
+- VO/DTO 补全 `@Schema` 字段级注解，完善 Swagger 文档
+- 放行 `/error` 路径，解决 SSE 连接结束后 Tomcat 内部转发导致的 503 错误
+
+**功能增强**
+- 用户管理页新增"分配角色"功能（Transfer 穿梭框）
+- 登录页新增表单校验（用户名/密码非空 + 长度限制）
+- 角色管理页新增名称/编码搜索
+- 菜单管理页新增名称搜索 + 高亮 + 树过滤
+- Dashboard 首页增强：AI 模型状态表、协议状态表、最近操作日志（分页）
+
+**新增页面**
+- 请求日志管理页（`/logs`）— 支持分页、搜索、详情弹窗
+- AI 模型配置管理页（`/ai-models`）— 支持 CRUD、分页、搜索
+- 404 页面 — 独立展示，不再重定向到登录页
+
+**新增接口**
+- `GET /api/logs` — 请求日志分页查询
+- `GET/POST/DELETE /api/ai/models` — AI 模型配置 CRUD

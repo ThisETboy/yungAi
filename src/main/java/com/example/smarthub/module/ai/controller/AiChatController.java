@@ -9,7 +9,9 @@ import com.example.smarthub.module.ai.entity.AiConversation;
 import com.example.smarthub.module.ai.service.AiChatService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -59,8 +61,9 @@ public class AiChatController {
      */
     @PostMapping("/chat/stream")
     @Operation(summary = "SSE流式聊天")
+    @PreAuthorize("hasAuthority('sys:ai:chat')")
     @RateLimit(key = "ai_chat", capacity = 30, windowSeconds = 60)
-    public SseEmitter chatStream(@RequestBody ChatRequest request) {
+    public SseEmitter chatStream(@Valid @RequestBody ChatRequest request) {
         // 从 SecurityContext 获取当前用户 ID，替代硬编码
         Long userId = getCurrentUserId();
         request.setUserId(userId);
@@ -72,6 +75,7 @@ public class AiChatController {
      */
     @GetMapping("/models")
     @Operation(summary = "获取可用AI模型")
+    @PreAuthorize("hasAuthority('sys:ai:model')")
     public R<Map<String, Boolean>> getModels() {
         Map<String, Boolean> models = adapterFactory.getAllAdapters().entrySet().stream()
                 .collect(Collectors.toMap(
@@ -86,6 +90,7 @@ public class AiChatController {
      */
     @PostMapping("/switch")
     @Operation(summary = "切换默认AI模型")
+    @PreAuthorize("hasAuthority('sys:ai:model')")
     public R<Void> switchModel(@RequestParam String provider) {
         adapterFactory.getAdapter(provider);
         adapterFactory.setDefaultProvider(provider);
@@ -98,6 +103,7 @@ public class AiChatController {
      */
     @PostMapping("/conversations")
     @Operation(summary = "创建新会话")
+    @PreAuthorize("hasAuthority('sys:ai:chat')")
     public R<Long> createConversation(@RequestParam String title,
                                       @RequestParam(required = false) Long modelId) {
         Long userId = getCurrentUserId();
@@ -110,6 +116,7 @@ public class AiChatController {
      */
     @GetMapping("/conversations")
     @Operation(summary = "获取会话列表")
+    @PreAuthorize("hasAuthority('sys:ai:chat')")
     public R<?> getConversations() {
         Long userId = getCurrentUserId();
         return R.ok(aiChatService.getConversations(userId));
@@ -120,6 +127,7 @@ public class AiChatController {
      */
     @DeleteMapping("/conversations/{id}")
     @Operation(summary = "删除会话")
+    @PreAuthorize("hasAuthority('sys:ai:chat')")
     public R<Void> deleteConversation(@PathVariable Long id) {
         Long userId = getCurrentUserId();
         // 验证会话属于当前用户
@@ -139,6 +147,7 @@ public class AiChatController {
      */
     @GetMapping("/conversations/{id}/messages")
     @Operation(summary = "获取会话历史消息")
+    @PreAuthorize("hasAuthority('sys:ai:chat')")
     public R<?> getMessages(@PathVariable Long id,
                             @RequestParam(defaultValue = "20") int limit) {
         Long userId = getCurrentUserId();

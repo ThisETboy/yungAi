@@ -3,7 +3,19 @@
     <h2>角色管理</h2>
 
     <el-card style="margin-bottom: 20px">
-      <el-button type="success" @click="handleAdd">新增角色</el-button>
+      <el-form :inline="true" :model="queryParams">
+        <el-form-item label="角色名称">
+          <el-input v-model="queryParams.roleName" placeholder="请输入角色名称" clearable />
+        </el-form-item>
+        <el-form-item label="角色编码">
+          <el-input v-model="queryParams.roleCode" placeholder="请输入角色编码" clearable />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="handleSearch">查询</el-button>
+          <el-button @click="handleReset">重置</el-button>
+          <el-button type="success" @click="handleAdd">新增角色</el-button>
+        </el-form-item>
+      </el-form>
     </el-card>
 
     <el-card>
@@ -63,6 +75,11 @@ import request from '@/api/request'
 const tableData = ref<any[]>([])
 const loading = ref(false)
 
+const queryParams = reactive({
+  roleName: '',
+  roleCode: '',
+})
+
 const dialogVisible = ref(false)
 const dialogTitle = ref('')
 const isEdit = ref(false)
@@ -71,6 +88,7 @@ const submitLoading = ref(false)
 const formRef = ref<FormInstance>()
 
 const formData = reactive({
+  id: null as number | null,
   roleCode: '',
   roleName: '',
   description: '',
@@ -85,12 +103,28 @@ const formRules: FormRules = {
 async function fetchData() {
   loading.value = true
   try {
-    tableData.value = await request.get('/roles')
+    const allRoles: any[] = await request.get('/roles')
+    // 前端过滤
+    tableData.value = allRoles.filter((r: any) => {
+      const matchName = !queryParams.roleName || r.roleName?.includes(queryParams.roleName)
+      const matchCode = !queryParams.roleCode || r.roleCode?.includes(queryParams.roleCode)
+      return matchName && matchCode
+    })
   } catch {
     // handled by interceptor
   } finally {
     loading.value = false
   }
+}
+
+function handleSearch() {
+  fetchData()
+}
+
+function handleReset() {
+  queryParams.roleName = ''
+  queryParams.roleCode = ''
+  fetchData()
 }
 
 function handleAdd() {

@@ -19,13 +19,17 @@ public class RoleRequest {
     private Long id;
 
     @NotBlank(message = "角色编码不能为空")
+    @Schema(description = "角色编码（唯一，如 ADMIN、USER）")
     private String roleCode;
 
     @NotBlank(message = "角色名称不能为空")
+    @Schema(description = "角色名称（如 管理员、普通用户）")
     private String roleName;
 
+    @Schema(description = "角色描述")
     private String description;
 
+    @Schema(description = "状态(0=禁用,1=启用)")
     private Integer status;
 
     @Schema(description = "关联的用户ID列表（暂不在此处理）")

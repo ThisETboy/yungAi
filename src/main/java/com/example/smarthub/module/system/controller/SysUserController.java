@@ -7,6 +7,7 @@ import com.example.smarthub.module.system.service.SysUserService;
 import com.example.smarthub.module.system.vo.UserVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -54,7 +55,7 @@ public class SysUserController {
     @PostMapping
     @Operation(summary = "创建用户")
     @PreAuthorize("hasAuthority('sys:user:add')")
-    public R<Void> create(@RequestBody UserRequest request) {
+    public R<Void> create(@Valid @RequestBody UserRequest request) {
         userService.createUser(request);
         return R.ok();
     }
@@ -66,7 +67,7 @@ public class SysUserController {
     @PutMapping("/{id}")
     @Operation(summary = "更新用户")
     @PreAuthorize("hasAuthority('sys:user:edit')")
-    public R<Void> update(@PathVariable Long id, @RequestBody UserRequest request) {
+    public R<Void> update(@PathVariable Long id, @Valid @RequestBody UserRequest request) {
         request.setId(id);
         userService.updateUser(request);
         return R.ok();

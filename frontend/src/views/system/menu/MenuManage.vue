@@ -3,19 +3,35 @@
     <h2>菜单管理</h2>
 
     <el-card style="margin-bottom: 20px">
-      <el-button type="success" @click="handleAdd(null)">新增根菜单</el-button>
+      <el-form :inline="true" :model="queryParams">
+        <el-form-item label="菜单名称">
+          <el-input v-model="queryParams.menuName" placeholder="请输入菜单名称" clearable style="width: 200px" />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="handleSearch">搜索</el-button>
+          <el-button @click="handleReset">重置</el-button>
+          <el-button type="success" @click="handleAdd(null)">新增根菜单</el-button>
+        </el-form-item>
+      </el-form>
     </el-card>
 
     <el-card>
       <el-table
-        :data="tableData"
+        :data="filteredTableData"
         border
         row-key="id"
         :tree-props="{ children: 'children' }"
         v-loading="loading"
         style="width: 100%"
       >
-        <el-table-column prop="menuName" label="菜单名称" min-width="200" />
+        <el-table-column prop="menuName" label="菜单名称" min-width="200">
+          <template #default="{ row }">
+            <span v-if="queryParams.menuName && row.menuName?.includes(queryParams.menuName)" style="color: #f56c6c; font-weight: bold">
+              {{ highlightText(row.menuName, queryParams.menuName) }}
+            </span>
+            <span v-else>{{ row.menuName }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="menuType" label="类型" width="80">
           <template #default="{ row }">
             <el-tag :type="row.menuType === 1 ? 'warning' : row.menuType === 2 ? 'success' : 'info'" size="small">
@@ -111,8 +127,40 @@ import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'elem
 import request from '@/api/request'
 
 const tableData = ref<any[]>([])
+const filteredTableData = ref<any[]>([])
 const loading = ref(false)
 const menuTreeOptions = ref<any[]>([])
+
+const queryParams = reactive({
+  menuName: '',
+})
+
+// 高亮匹配文本
+function highlightText(text: string, keyword: string): string {
+  if (!keyword || !text) return text
+  const idx = text.indexOf(keyword)
+  if (idx === -1) return text
+  return text.substring(0, idx) + `<mark style="background:#fde2e2;color:#f56c6c">${keyword}</mark>` + text.substring(idx + keyword.length)
+}
+
+// 递归过滤树节点
+function filterTree(nodes: any[], keyword: string): any[] {
+  if (!keyword) return nodes
+  return nodes.reduce((acc: any[], node) => {
+    const matchName = node.menuName?.includes(keyword)
+    const filteredChildren = node.children ? filterTree(node.children, keyword) : []
+    if (matchName || filteredChildren.length > 0) {
+      acc.push({ ...node, children: filteredChildren })
+    }
+    return acc
+  }, [])
+}
+
+// 监听搜索关键词变化，自动过滤
+import { watch } from 'vue'
+watch(() => queryParams.menuName, () => {
+  filteredTableData.value = filterTree(tableData.value, queryParams.menuName)
+})
 
 const dialogVisible = ref(false)
 const dialogTitle = ref('')
@@ -152,12 +200,22 @@ async function fetchData() {
   try {
     const res: any = await request.get('/menus/tree')
     tableData.value = res || []
+    filteredTableData.value = filterTree(res || [], queryParams.menuName)
     menuTreeOptions.value = buildTreeOptions(res || [])
   } catch {
     // handled by interceptor
   } finally {
     loading.value = false
   }
+}
+
+function handleSearch() {
+  filteredTableData.value = filterTree(tableData.value, queryParams.menuName)
+}
+
+function handleReset() {
+  queryParams.menuName = ''
+  filteredTableData.value = tableData.value
 }
 
 function handleAdd(row: any | null) {

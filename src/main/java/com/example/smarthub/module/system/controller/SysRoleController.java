@@ -4,13 +4,16 @@ import com.example.smarthub.common.response.R;
 import com.example.smarthub.module.system.dto.RoleRequest;
 import com.example.smarthub.module.system.entity.SysRole;
 import com.example.smarthub.module.system.service.SysRoleService;
+import com.example.smarthub.module.system.vo.RoleVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 角色管理控制器
@@ -29,8 +32,21 @@ public class SysRoleController {
     @GetMapping
     @Operation(summary = "角色列表")
     @PreAuthorize("hasAuthority('sys:role:list')")
-    public R<List<SysRole>> list() {
-        return R.ok(roleService.list());
+    public R<List<RoleVO>> list() {
+        List<SysRole> roles = roleService.list();
+        return R.ok(roles.stream().map(this::toVO).collect(Collectors.toList()));
+    }
+
+    private RoleVO toVO(SysRole role) {
+        RoleVO vo = new RoleVO();
+        vo.setId(role.getId());
+        vo.setRoleCode(role.getRoleCode());
+        vo.setRoleName(role.getRoleName());
+        vo.setDescription(role.getDescription());
+        vo.setStatus(role.getStatus());
+        vo.setCreateTime(role.getCreateTime());
+        vo.setUpdateTime(role.getUpdateTime());
+        return vo;
     }
 
     /**
@@ -40,7 +56,7 @@ public class SysRoleController {
     @PostMapping
     @Operation(summary = "创建/更新角色")
     @PreAuthorize("hasAuthority('sys:role:add') or hasAuthority('sys:role:edit')")
-    public R<Void> save(@RequestBody RoleRequest request) {
+    public R<Void> save(@Valid @RequestBody RoleRequest request) {
         roleService.createOrUpdateRole(request);
         return R.ok();
     }

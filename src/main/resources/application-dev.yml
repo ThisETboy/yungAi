@@ -41,6 +41,13 @@ spring:
       max-file-size: 10MB       # 单文件最大 10MB
       max-request-size: 10MB    # 总请求最大 10MB
 
+# ---- 文件存储配置 ----
+file:
+  upload:
+    path: ./uploads          # 文件存储根目录
+  access:
+    prefix: /api/files       # 文件访问前缀
+
   # ---- 排除集成自动配置（避免启动时尝试连接 RabbitMQ 绑定）----
   autoconfigure:
     exclude:

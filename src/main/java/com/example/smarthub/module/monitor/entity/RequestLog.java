@@ -1,20 +1,24 @@
 package com.example.smarthub.module.monitor.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.example.smarthub.common.base.BaseEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
+
+import java.time.LocalDateTime;
 
 /**
  * 请求日志实体 — 对应 request_log 表
  * 记录每个 HTTP 请求的关键信息，用于审计和排查问题
+ * 注意：此表无 deleted 字段，不继承 BaseEntity 以避免逻辑删除注入
  */
 @Data
-@EqualsAndHashCode(callSuper = true)
 @TableName("request_log")
 @Schema(description = "请求日志实体")
-public class RequestLog extends BaseEntity {
+public class RequestLog {
+
+    @Schema(description = "主键ID")
+    private Long id;
 
     @Schema(description = "请求方法（GET/POST/PUT/DELETE）")
     private String method;
@@ -51,4 +55,12 @@ public class RequestLog extends BaseEntity {
 
     @Schema(description = "异常信息（截断至 1000 字符）")
     private String errorMsg;
+
+    @Schema(description = "创建时间")
+    @TableField(fill = com.baomidou.mybatisplus.annotation.FieldFill.INSERT)
+    private LocalDateTime createTime;
+
+    @Schema(description = "更新时间")
+    @TableField(fill = com.baomidou.mybatisplus.annotation.FieldFill.INSERT_UPDATE)
+    private LocalDateTime updateTime;
 }

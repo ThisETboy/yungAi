@@ -126,7 +126,7 @@ const formData = reactive({
 async function fetchData() {
   loading.value = true
   try {
-    const res: any = await request.get('/ai/models', {
+    const res: any = await request.get('/ai/model-configs', {
       params: {
         current: queryParams.current,
         size: queryParams.size,
@@ -181,10 +181,10 @@ async function handleSubmit() {
   try {
     const data = { ...formData }
     if (isEdit.value) {
-      await request.put(`/ai/models/${editId.value}`, data)
+      await request.put(`/ai/model-configs/${editId.value}`, data)
       ElMessage.success('更新成功')
     } else {
-      await request.post('/ai/models', data)
+      await request.post('/ai/model-configs', data)
       ElMessage.success('创建成功')
     }
     dialogVisible.value = false
@@ -199,7 +199,7 @@ async function handleSubmit() {
 async function handleDelete(row: any) {
   try {
     await ElMessageBox.confirm(`确定删除模型配置 "${row.modelName}" 吗？`, '提示', { type: 'warning' })
-    await request.delete(`/ai/models/${row.id}`)
+    await request.delete(`/ai/model-configs/${row.id}`)
     ElMessage.success('删除成功')
     fetchData()
   } catch {

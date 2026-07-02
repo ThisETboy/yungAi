@@ -48,4 +48,19 @@ public interface SysUserService extends IService<SysUser> {
      * 根据用户名加载用户详情（供 Spring Security 认证使用）
      */
     com.example.smarthub.module.system.entity.SysUser findByUsername(String username);
+
+    /**
+     * 修改用户密码
+     */
+    void changePassword(String username, String oldPassword, String newPassword);
+
+    /**
+     * 更新用户头像
+     */
+    void updateAvatar(String username, String avatar);
+
+    /**
+     * 修改个人资料
+     */
+    void updateProfile(String username, String nickname, String email, String phone, String avatar);
 }

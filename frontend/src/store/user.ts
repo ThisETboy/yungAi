@@ -10,6 +10,7 @@ export const useUserStore = defineStore('user', {
     roles: [] as string[],
     permissions: [] as string[],
     menus: [] as any[],
+    userInfo: {} as any,
   }),
 
   actions: {

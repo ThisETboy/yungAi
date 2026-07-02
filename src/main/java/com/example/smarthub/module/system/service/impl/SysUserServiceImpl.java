@@ -188,4 +188,48 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         }
         return user;
     }
+
+    /**
+     * 修改用户密码
+     * 1. 校验旧密码是否正确
+     * 2. 新密码 BCrypt 加密后存储
+     */
+    @Override
+    @Transactional
+    public void changePassword(String username, String oldPassword, String newPassword) {
+        SysUser user = findByUsername(username);
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new BizException("原密码不正确");
+        }
+        if (newPassword == null || newPassword.isEmpty()) {
+            throw new BizException("新密码不能为空");
+        }
+        user.setPassword(passwordEncoder.encode(newPassword));
+        updateById(user);
+    }
+
+    /**
+     * 更新用户头像
+     */
+    @Override
+    @Transactional
+    public void updateAvatar(String username, String avatar) {
+        SysUser user = findByUsername(username);
+        user.setAvatar(avatar);
+        updateById(user);
+    }
+
+    /**
+     * 修改个人资料
+     */
+    @Override
+    @Transactional
+    public void updateProfile(String username, String nickname, String email, String phone, String avatar) {
+        SysUser user = findByUsername(username);
+        if (nickname != null) user.setNickname(nickname);
+        if (email != null) user.setEmail(email);
+        if (phone != null) user.setPhone(phone);
+        if (avatar != null) user.setAvatar(avatar);
+        updateById(user);
+    }
 }

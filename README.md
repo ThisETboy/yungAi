@@ -404,6 +404,18 @@ mysql -u root -p < src/main/resources/db/V3__create_request_log.sql
 
 # 4. 新增权限菜单（协议管理、AI 模型配置、请求日志等）
 mysql -u root -p < src/main/resources/db/V4__add_new_permissions.sql
+
+# 5. 数据字典
+mysql -u root -p < src/main/resources/db/V5__create_dict_tables.sql
+
+# 6. 操作日志
+mysql -u root -p < src/main/resources/db/V6__create_oper_log.sql
+
+# 7. 文件信息
+mysql -u root -p < src/main/resources/db/V7__create_sys_file.sql
+
+# 8. 系统配置
+mysql -u root -p < src/main/resources/db/V8__create_sys_config.sql
 ```
 
 ### 数据库表清单
@@ -420,6 +432,11 @@ mysql -u root -p < src/main/resources/db/V4__add_new_permissions.sql
 | `ai_message` | AI 消息 |
 | `request_log` | 请求日志 |
 | `ai_model_config` | AI 模型配置 |
+| `sys_dict_type` | 字典类型 |
+| `sys_dict_data` | 字典数据 |
+| `oper_log` | 操作日志 |
+| `sys_file` | 文件信息 |
+| `sys_config` | 系统配置 |
 
 ## API 文档
 
@@ -484,6 +501,20 @@ ProtocolAdapter (接口)
 | `sys:ai:chat` | AI 聊天 | POST /api/ai/chat/stream, 会话管理等 |
 | `sys:ai:model` | AI 模型管理 | GET/POST/DELETE /api/ai/models, 模型切换 |
 | `sys:log:list` | 查看请求日志 | GET /api/logs |
+| `sys:dict:type:list` | 字典类型查看 | GET /api/dict/types |
+| `sys:dict:type:edit` | 字典类型编辑 | POST /api/dict/types |
+| `sys:dict:type:delete` | 字典类型删除 | DELETE /api/dict/types/{id} |
+| `sys:dict:data:list` | 字典数据查看 | GET /api/dict/data |
+| `sys:dict:data:edit` | 字典数据编辑 | POST /api/dict/data |
+| `sys:dict:data:delete` | 字典数据删除 | DELETE /api/dict/data/{id} |
+| `sys:operlog:list` | 操作日志查看 | GET /api/oper-log |
+| `sys:operlog:delete` | 操作日志删除 | DELETE /api/oper-log |
+| `sys:config:list` | 系统配置查看 | GET /api/config |
+| `sys:config:edit` | 系统配置编辑 | POST /api/config |
+| `sys:config:delete` | 系统配置删除 | DELETE /api/config |
+| `sys:cache:list` | 缓存查看 | GET /api/cache/* |
+| `sys:cache:delete` | 缓存删除 | DELETE /api/cache/* |
+| `sys:file:upload` | 文件上传 | POST /api/files/upload |
 
 ### 限流模块
 
@@ -507,6 +538,12 @@ ProtocolAdapter (接口)
 | 协议管理 | `/protocol` | `GET/POST /api/protocol/*` | 协议启停 + 设备数据收发 |
 | 请求日志 | `/logs` | `GET /api/logs` | 请求日志分页查询 + 详情 |
 | AI 模型配置 | `/ai-models` | `GET/POST/DELETE /api/ai/models` | AI 模型 CRUD 管理 |
+| 数据字典 | `/dict` | `GET/POST/DELETE /api/dict/*` | 字典类型 + 字典数据管理 |
+| 操作日志 | `/oper-log` | `GET /api/oper-log` | 操作日志分页查询 + 详情 |
+| 个人中心 | `/profile` | `GET/PUT /api/profile/*` | 修改密码 + 修改资料 |
+| 文件管理 | `/files` | `POST /api/files/upload` | 文件上传 + 下载预览 |
+| 系统配置 | `/config` | `GET/POST/DELETE /api/config` | 运行时配置管理 |
+| 缓存管理 | `/cache` | `GET/DELETE /api/cache/*` | Redis 缓存可视化管理 |
 
 ## 配置说明
 
@@ -598,3 +635,15 @@ MIT
 **新增接口**
 - `GET /api/logs` — 请求日志分页查询
 - `GET/POST/DELETE /api/ai/models` — AI 模型配置 CRUD
+
+### v0.3.0 — 2026-07-02
+
+**第一批：快速见效**
+- 数据字典管理 — 字典类型 + 字典数据 CRUD，含 6 种常用字典种子数据
+- 操作日志/审计日志 — `@OperateLog` 注解 + AOP 切面，自动记录业务操作
+- 个人中心 — 修改密码、修改资料、修改头像
+
+**第二批：按需推进**
+- 文件上传下载 — 本地磁盘存储，支持拖拽上传、预览、下载
+- 系统配置管理 — 运行时配置 CRUD，支持 Redis 缓存、热更新
+- 缓存管理 — Redis 可视化管理，支持 Key 查询、查看、删除、清空

@@ -1,6 +1,8 @@
 package com.example.smarthub.module.system.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.example.smarthub.common.annotation.OperateLog;
+import com.example.smarthub.common.annotation.OperateLog.BusinessType;
 import com.example.smarthub.common.response.R;
 import com.example.smarthub.module.system.dto.UserRequest;
 import com.example.smarthub.module.system.service.SysUserService;
@@ -55,6 +57,7 @@ public class SysUserController {
     @PostMapping
     @Operation(summary = "创建用户")
     @PreAuthorize("hasAuthority('sys:user:add')")
+    @OperateLog(title = "用户管理", businessType = BusinessType.INSERT)
     public R<Void> create(@Valid @RequestBody UserRequest request) {
         userService.createUser(request);
         return R.ok();
@@ -67,6 +70,7 @@ public class SysUserController {
     @PutMapping("/{id}")
     @Operation(summary = "更新用户")
     @PreAuthorize("hasAuthority('sys:user:edit')")
+    @OperateLog(title = "用户管理", businessType = BusinessType.UPDATE)
     public R<Void> update(@PathVariable Long id, @Valid @RequestBody UserRequest request) {
         request.setId(id);
         userService.updateUser(request);
@@ -80,6 +84,7 @@ public class SysUserController {
     @DeleteMapping("/{id}")
     @Operation(summary = "删除用户")
     @PreAuthorize("hasAuthority('sys:user:delete')")
+    @OperateLog(title = "用户管理", businessType = BusinessType.DELETE)
     public R<Void> delete(@PathVariable Long id) {
         userService.deleteUser(id);
         return R.ok();
@@ -92,6 +97,7 @@ public class SysUserController {
     @PutMapping("/{id}/roles")
     @Operation(summary = "分配角色")
     @PreAuthorize("hasAuthority('sys:user:edit')")
+    @OperateLog(title = "用户管理", businessType = BusinessType.GRANT)
     public R<Void> assignRoles(@PathVariable Long id, @RequestBody Long[] roleIds) {
         userService.assignRoles(id, roleIds);
         return R.ok();

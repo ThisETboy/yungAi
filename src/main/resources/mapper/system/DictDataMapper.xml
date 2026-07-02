@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.smarthub.module.system.mapper.DictDataMapper">
+
+    <resultMap id="DictDataResultMap" type="com.example.smarthub.module.system.entity.DictData">
+        <id property="id" column="id"/>
+        <result property="dictTypeId" column="dict_type_id"/>
+        <result property="dictLabel" column="dict_label"/>
+        <result property="dictValue" column="dict_value"/>
+        <result property="dictSort" column="dict_sort"/>
+        <result property="cssClass" column="css_class"/>
+        <result property="listClass" column="list_class"/>
+        <result property="isDefault" column="is_default"/>
+        <result property="status" column="status"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <!-- 根据字典类型查询字典数据列表 -->
+    <select id="selectDictDataByType" resultMap="DictDataResultMap">
+        SELECT dd.id, dd.dict_type_id, dd.dict_label, dd.dict_value, dd.dict_sort,
+               dd.css_class, dd.list_class, dd.is_default, dd.status, dd.create_time, dd.update_time
+        FROM sys_dict_data dd
+        INNER JOIN sys_dict_type dt ON dt.id = dd.dict_type_id
+        WHERE dt.dict_type = #{dictType}
+          AND dt.status = 1
+          AND dd.status = 1
+        ORDER BY dd.dict_sort ASC
+    </select>
+
+</mapper>

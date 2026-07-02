@@ -6,6 +6,7 @@ import com.example.smarthub.module.ai.entity.AiModelConfig;
 import com.example.smarthub.module.ai.service.AiModelConfigService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -16,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
  * 提供 AI 模型配置的 CRUD 接口
  */
 @RestController
-@RequestMapping("/api/ai/models")
+@RequestMapping("/api/ai/model-configs")
 @RequiredArgsConstructor
 @Tag(name = "AI模型配置")
 public class AiModelConfigController {
@@ -51,7 +52,19 @@ public class AiModelConfigController {
     @PostMapping
     @Operation(summary = "创建/更新AI模型配置")
     @PreAuthorize("hasAuthority('sys:ai:model')")
-    public R<Void> save(@RequestBody AiModelConfig config) {
+    public R<Void> save(@Valid @RequestBody AiModelConfig config) {
+        modelConfigService.saveOrUpdate(config);
+        return R.ok();
+    }
+
+    /**
+     * 更新 AI 模型配置
+     */
+    @PutMapping("/{id}")
+    @Operation(summary = "更新AI模型配置")
+    @PreAuthorize("hasAuthority('sys:ai:model')")
+    public R<Void> update(@PathVariable Long id, @Valid @RequestBody AiModelConfig config) {
+        config.setId(id);
         modelConfigService.saveOrUpdate(config);
         return R.ok();
     }

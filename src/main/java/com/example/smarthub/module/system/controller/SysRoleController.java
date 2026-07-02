@@ -1,5 +1,7 @@
 package com.example.smarthub.module.system.controller;
 
+import com.example.smarthub.common.annotation.OperateLog;
+import com.example.smarthub.common.annotation.OperateLog.BusinessType;
 import com.example.smarthub.common.response.R;
 import com.example.smarthub.module.system.dto.RoleRequest;
 import com.example.smarthub.module.system.entity.SysRole;
@@ -56,6 +58,7 @@ public class SysRoleController {
     @PostMapping
     @Operation(summary = "创建/更新角色")
     @PreAuthorize("hasAuthority('sys:role:add') or hasAuthority('sys:role:edit')")
+    @OperateLog(title = "角色管理", businessType = BusinessType.INSERT)
     public R<Void> save(@Valid @RequestBody RoleRequest request) {
         roleService.createOrUpdateRole(request);
         return R.ok();
@@ -68,6 +71,7 @@ public class SysRoleController {
     @DeleteMapping("/{id}")
     @Operation(summary = "删除角色")
     @PreAuthorize("hasAuthority('sys:role:delete')")
+    @OperateLog(title = "角色管理", businessType = BusinessType.DELETE)
     public R<Void> delete(@PathVariable Long id) {
         roleService.deleteRole(id);
         return R.ok();
@@ -80,6 +84,7 @@ public class SysRoleController {
     @PutMapping("/{id}/menus")
     @Operation(summary = "分配菜单权限")
     @PreAuthorize("hasAuthority('sys:role:assign')")
+    @OperateLog(title = "角色管理", businessType = BusinessType.GRANT)
     public R<Void> assignMenus(@PathVariable Long id, @RequestBody Long[] menuIds) {
         roleService.assignMenus(id, menuIds);
         return R.ok();

@@ -6,6 +6,8 @@ import com.example.smarthub.module.system.service.SysMenuService;
 import com.example.smarthub.module.system.vo.MenuTreeNodeVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import com.example.smarthub.common.annotation.OperateLog;
+import com.example.smarthub.common.annotation.OperateLog.BusinessType;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -43,6 +45,7 @@ public class SysMenuController {
     @PostMapping
     @Operation(summary = "创建菜单")
     @PreAuthorize("hasAuthority('sys:menu:add')")
+    @OperateLog(title = "菜单管理", businessType = BusinessType.INSERT)
     public R<Void> create(@Valid @RequestBody MenuRequest request) {
         menuService.createMenu(request);
         return R.ok();
@@ -55,6 +58,7 @@ public class SysMenuController {
     @PutMapping("/{id}")
     @Operation(summary = "更新菜单")
     @PreAuthorize("hasAuthority('sys:menu:edit')")
+    @OperateLog(title = "菜单管理", businessType = BusinessType.UPDATE)
     public R<Void> update(@PathVariable Long id, @Valid @RequestBody MenuRequest request) {
         request.setId(id);
         menuService.updateMenu(request);
@@ -68,6 +72,7 @@ public class SysMenuController {
     @DeleteMapping("/{id}")
     @Operation(summary = "删除菜单")
     @PreAuthorize("hasAuthority('sys:menu:delete')")
+    @OperateLog(title = "菜单管理", businessType = BusinessType.DELETE)
     public R<Void> delete(@PathVariable Long id) {
         menuService.deleteMenu(id);
         return R.ok();

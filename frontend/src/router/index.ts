@@ -42,6 +42,48 @@ const constantRoutes: RouteRecordRaw[] = [
         component: () => import('@/views/ai/modelconfig/AiModelConfigManage.vue'),
         meta: { title: 'AI模型配置' },
       },
+      // 数据字典页面 — 静态路由
+      {
+        path: 'dict',
+        name: 'DictManage',
+        component: () => import('@/views/system/dict/DictManage.vue'),
+        meta: { title: '数据字典' },
+      },
+      // 操作日志页面 — 静态路由
+      {
+        path: 'oper-log',
+        name: 'OperLogManage',
+        component: () => import('@/views/system/operlog/OperLogManage.vue'),
+        meta: { title: '操作日志' },
+      },
+      // 个人中心页面 — 静态路由
+      {
+        path: 'profile',
+        name: 'ProfileView',
+        component: () => import('@/views/profile/ProfileView.vue'),
+        meta: { title: '个人中心' },
+      },
+      // 文件管理页面 — 静态路由
+      {
+        path: 'files',
+        name: 'FileManage',
+        component: () => import('@/views/system/file/FileManage.vue'),
+        meta: { title: '文件管理' },
+      },
+      // 系统配置页面 — 静态路由
+      {
+        path: 'config',
+        name: 'SysConfigManage',
+        component: () => import('@/views/system/config/SysConfigManage.vue'),
+        meta: { title: '系统配置' },
+      },
+      // 缓存管理页面 — 静态路由
+      {
+        path: 'cache',
+        name: 'CacheManage',
+        component: () => import('@/views/system/cache/CacheManage.vue'),
+        meta: { title: '缓存管理' },
+      },
     ],
   },
   {

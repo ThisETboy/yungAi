@@ -84,6 +84,13 @@ const constantRoutes: RouteRecordRaw[] = [
         component: () => import('@/views/system/cache/CacheManage.vue'),
         meta: { title: '缓存管理' },
       },
+      // 登录日志页面 — 静态路由
+      {
+        path: 'login-log',
+        name: 'LoginLogManage',
+        component: () => import('@/views/system/loginlog/LoginLogManage.vue'),
+        meta: { title: '登录日志' },
+      },
     ],
   },
   {

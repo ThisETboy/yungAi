@@ -416,6 +416,12 @@ mysql -u root -p < src/main/resources/db/V7__create_sys_file.sql
 
 # 8. 系统配置
 mysql -u root -p < src/main/resources/db/V8__create_sys_config.sql
+
+# 9. 登录日志
+mysql -u root -p < src/main/resources/db/V9__create_login_log.sql
+
+# 10. 补全缺失菜单（数据字典、操作日志、文件管理、系统配置、缓存管理、登录日志、个人中心）
+mysql -u root -p < src/main/resources/db/V10__fix_missing_menus.sql
 ```
 
 ### 数据库表清单

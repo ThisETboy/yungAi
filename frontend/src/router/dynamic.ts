@@ -7,11 +7,32 @@ const registeredRouteNames = new Set<string>()
 
 /** 组件映射表 — key 对应菜单的 component 字段，value 是动态 import */
 const componentMap: Record<string, () => Promise<any>> = {
+  // 系统管理模块
   'system/user/UserManage': () => import('@/views/system/user/UserManage.vue'),
   'system/role/RoleManage': () => import('@/views/system/role/RoleManage.vue'),
   'system/menu/MenuManage': () => import('@/views/system/menu/MenuManage.vue'),
+  // AI 模块
   'ai/chat/ChatView': () => import('@/views/ai/chat/ChatView.vue'),
   'ai/codegen/CodeGenView': () => import('@/views/ai/codegen/CodeGenView.vue'),
+  'ai/modelconfig/AiModelConfigManage': () => import('@/views/ai/modelconfig/AiModelConfigManage.vue'),
+  // 协议模块
+  'protocol/ProtocolManage': () => import('@/views/protocol/ProtocolManage.vue'),
+  // 监控模块
+  'monitor/RequestLogManage': () => import('@/views/monitor/RequestLogManage.vue'),
+  // 数据字典
+  'system/dict/DictManage': () => import('@/views/system/dict/DictManage.vue'),
+  // 操作日志
+  'system/operlog/OperLogManage': () => import('@/views/system/operlog/OperLogManage.vue'),
+  // 文件管理
+  'system/file/FileManage': () => import('@/views/system/file/FileManage.vue'),
+  // 系统配置
+  'system/config/SysConfigManage': () => import('@/views/system/config/SysConfigManage.vue'),
+  // 缓存管理
+  'system/cache/CacheManage': () => import('@/views/system/cache/CacheManage.vue'),
+  // 登录日志
+  'system/loginlog/LoginLogManage': () => import('@/views/system/loginlog/LoginLogManage.vue'),
+  // 个人中心
+  'profile/ProfileView': () => import('@/views/profile/ProfileView.vue'),
 }
 
 /**

@@ -19,4 +19,7 @@ public class LoginRequest {
     @NotBlank(message = "密码不能为空")
     @Size(max = 128, message = "密码不能超过128个字符")
     private String password;
+
+    @Schema(description = "记住我（使用长期 Token，7 天有效期）", example = "false")
+    private Boolean rememberMe = false;
 }

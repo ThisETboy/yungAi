@@ -9,8 +9,11 @@ import com.example.smarthub.module.system.entity.SysLoginLog;
 import com.example.smarthub.module.system.entity.SysMenu;
 import com.example.smarthub.module.system.entity.SysUser;
 import com.example.smarthub.module.system.mapper.SysRoleMapper;
+import com.example.smarthub.module.system.service.TokenBlacklistService;
+import com.example.smarthub.module.system.service.OnlineUserService;
 import com.example.smarthub.module.system.service.SysLoginLogService;
 import com.example.smarthub.module.system.service.SysUserService;
+import com.example.smarthub.module.system.service.UserInfoCacheService;
 import com.example.smarthub.module.system.vo.UserInfoVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -20,19 +23,15 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -42,8 +41,6 @@ import java.util.stream.Collectors;
 
 /**
  * 认证控制器 — 处理登录、登出、Token 刷新、获取当前用户信息
- *
- * 注意：当前登录流程中 userId 硬编码为 1，后续应改为从数据库查询真实用户ID
  */
 @RestController
 @RequestMapping("/api/auth")
@@ -52,14 +49,15 @@ import java.util.stream.Collectors;
 @Tag(name = "认证管理")
 public class AuthController {
 
-    private final AuthenticationManager authenticationManager;
     private final AuthenticationProvider authenticationProvider;
     private final JwtUtil jwtUtil;
     private final SysRoleMapper sysRoleMapper;
     private final SysUserService sysUserService;
     private final SysLoginLogService loginLogService;
-    private final RedisTemplate<String, Object> redisTemplate;
     private final StringRedisTemplate stringRedisTemplate;
+    private final TokenBlacklistService tokenBlacklistService;
+    private final OnlineUserService onlineUserService;
+    private final UserInfoCacheService userInfoCacheService;
 
     @Value("${sys.login.maxRetryCount:5}")
     private int maxRetryCount;
@@ -69,29 +67,24 @@ public class AuthController {
 
     @PostConstruct
     public void init() {
-        // 启动时清除旧的 lock key（防止旧序列化方式导致的脏数据）
-        if (stringRedisTemplate != null) {
-            Set<String> keys = stringRedisTemplate.keys("login:lock:*");
-            if (keys != null && !keys.isEmpty()) {
-                stringRedisTemplate.delete(keys);
-                log.info("Cleared {} stale login lock keys on startup", keys.size());
-            }
+        Set<String> keys = stringRedisTemplate.keys("login:lock:*");
+        if (keys != null && !keys.isEmpty()) {
+            stringRedisTemplate.delete(keys);
+            log.info("Cleared {} stale login lock keys on startup", keys.size());
         }
     }
 
     /**
      * 用户登录
-     * 1. 检查用户是否被锁定（连续失败次数超限）
-     * 2. AuthenticationManager 校验用户名密码
-     * 3. 登录成功：清除失败计数，生成 Token
-     * 4. 登录失败：累加失败计数，超过阈值则锁定账号
-     * 5. 记录登录日志
+     * 1. 检查账号锁定
+     * 2. 认证
+     * 3. 生成 Token（支持记住我长期 Token）
+     * 4. 记录在线用户 + 登录日志
      */
     @PostMapping("/login")
     @Operation(summary = "用户登录")
     @RateLimit(key = "login", capacity = 20, windowSeconds = 60, expression = "#request.remoteAddr")
     public R<LoginResponse> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
-        log.info("LOGIN ENTERED: username={}", request.getUsername());
         String username = request.getUsername();
         String ipAddress = getClientIp(httpRequest);
         String userAgent = httpRequest.getHeader("User-Agent");
@@ -99,39 +92,42 @@ public class AuthController {
         // 1. 检查账号是否被锁定
         String lockKey = "login:lock:" + username;
         String lockCount = stringRedisTemplate.opsForValue().get(lockKey);
-        log.info("Login check: username={}, lockKey={}, lockCount={}", username, lockKey, lockCount);
         if (lockCount != null) {
             int count = Integer.parseInt(lockCount);
             if (count >= maxRetryCount) {
-                log.warn("用户 {} 账号已被锁定（失败{}次），登录失败", username, count);
                 saveLoginLog(username, ipAddress, userAgent, 0, "账号已被锁定，请 " + lockTimeMinutes + " 分钟后重试");
                 return R.fail(423, "账号已被锁定，请稍后再试");
             }
         }
 
         try {
-            // 2. 认证 — 使用 authenticationProvider 而不是 authenticationManager，确保异常能传播到 catch 块
             UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(username, request.getPassword());
             Authentication authentication = authenticationProvider.authenticate(authToken);
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            // 3. 登录成功：清除失败计数，生成 Token
-            redisTemplate.delete(lockKey);
-            Long userId = sysUserService.findByUsername(username).getId();
-            String accessToken = jwtUtil.generateToken(userId, username, Map.of());
+            // 2. 登录成功：清除失败计数，生成 Token
+            stringRedisTemplate.delete(lockKey);
+            SysUser currentUser = sysUserService.findByUsername(username);
+            Long userId = currentUser.getId();
+
+            // 根据 rememberMe 决定 Token 有效期
+            boolean rememberMe = Boolean.TRUE.equals(request.getRememberMe());
+            String accessToken = jwtUtil.generateTokenWithTtl(userId, username, Map.of(), rememberMe ? 7 : 2);
             String refreshToken = jwtUtil.generateRefreshToken(username);
 
+            // 3. 记录在线用户
+            onlineUserService.recordOnline(userId, username, accessToken);
+
             // 4. 记录登录日志
-            saveLoginLog(username, ipAddress, userAgent, 1, "登录成功");
+            saveLoginLog(username, ipAddress, userAgent, 1, "登录成功" + (rememberMe ? "（记住我）" : ""));
 
             return R.ok(LoginResponse.builder()
                     .accessToken(accessToken)
                     .refreshToken(refreshToken)
                     .tokenType("Bearer")
-                    .expiresIn(7200L)
+                    .expiresIn(rememberMe ? 604800L : 7200L)
                     .build());
         } catch (BadCredentialsException e) {
-            // 5. 登录失败：累加失败计数
             incrementLoginFailCount(username, ipAddress, userAgent);
             return R.fail(401, "用户名或密码错误");
         } catch (LockedException e) {
@@ -145,18 +141,34 @@ public class AuthController {
     }
 
     /**
-     * 用户登出 — 清除当前 SecurityContext
+     * 用户登出 — Token 加入黑名单，清除在线记录
      */
     @PostMapping("/logout")
     @Operation(summary = "用户登出")
-    public R<Void> logout() {
+    public R<Void> logout(HttpServletRequest request) {
+        try {
+            String authHeader = request.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                String token = authHeader.substring(7);
+                tokenBlacklistService.blacklist(token);
+
+                // 尝试获取 userId 并移除在线记录
+                try {
+                    Long userId = jwtUtil.getUserId(token);
+                    onlineUserService.removeToken(userId, token);
+                } catch (Exception e) {
+                    log.debug("Could not extract userId from token for cleanup: {}", e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Error during token cleanup on logout: {}", e.getMessage());
+        }
         SecurityContextHolder.clearContext();
         return R.ok();
     }
 
     /**
      * 刷新 Access Token
-     * 使用 refreshToken 换取新的 accessToken + refreshToken
      */
     @PostMapping("/refresh")
     @Operation(summary = "刷新Token")
@@ -170,10 +182,12 @@ public class AuthController {
             return R.fail(401, "刷新令牌已过期");
         }
         String username = jwtUtil.getUsername(refreshToken);
-        // 从数据库查询真实 userId
         Long userId = sysUserService.findByUsername(username).getId();
         String newAccessToken = jwtUtil.generateToken(userId, username, Map.of());
         String newRefreshToken = jwtUtil.generateRefreshToken(username);
+
+        // 更新在线记录
+        onlineUserService.recordOnline(userId, username, newAccessToken);
 
         return R.ok(LoginResponse.builder()
                 .accessToken(newAccessToken)
@@ -184,40 +198,24 @@ public class AuthController {
     }
 
     /**
-     * 获取当前登录用户的信息（角色、权限、菜单树）
-     * 用于前端动态生成侧边栏菜单和权限校验
+     * 获取当前登录用户的信息（角色、权限、菜单树）— 带缓存
      */
     @GetMapping("/info")
     @Operation(summary = "当前用户信息")
-    public R<UserInfoVO> info(HttpServletRequest request) {
+    public R<UserInfoVO> info(HttpServletRequest httpRequest) {
+        String authHeader = httpRequest.getHeader("Authorization");
+        String token = null;
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
+        }
+
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth.getName();
-
-        // 从 SecurityContext 中获取经过认证的用户信息
-        // userId 通过 SysUserMapper 查询数据库获取，不使用 JWT 中的 userId（防止篡改）
         SysUser currentUser = sysUserService.findByUsername(username);
         Long userId = currentUser.getId();
 
-        UserInfoVO vo = new UserInfoVO();
-        vo.setUsername(username);
-
-        // 分离角色和权限标识
-        List<String> roles = auth.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .filter(a -> a.startsWith("ROLE_"))
-                .collect(Collectors.toList());
-        vo.setRoles(roles);
-
-        List<String> permissions = auth.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .filter(a -> !a.startsWith("ROLE_"))
-                .collect(Collectors.toList());
-        vo.setPermissions(permissions);
-
-        // 查询该用户有权限访问的菜单
-        List<SysMenu> menus = sysRoleMapper.selectMenusByUserId(userId);
-        vo.setMenus(convertMenus(menus));
-
+        // 使用缓存服务获取用户信息
+        UserInfoVO vo = userInfoCacheService.getUserInfo(userId, token);
         return R.ok(vo);
     }
 
@@ -239,9 +237,6 @@ public class AuthController {
         }).collect(Collectors.toList());
     }
 
-    /**
-     * 获取客户端真实 IP
-     */
     private String getClientIp(HttpServletRequest request) {
         String ip = request.getHeader("X-Forwarded-For");
         if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
@@ -250,16 +245,12 @@ public class AuthController {
         if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getRemoteAddr();
         }
-        // X-Forwarded-For 可能包含多个 IP，取第一个
         if (ip != null && ip.contains(",")) {
             ip = ip.split(",")[0].trim();
         }
         return ip;
     }
 
-    /**
-     * 累加登录失败次数，超过阈值则锁定账号
-     */
     private void incrementLoginFailCount(String username, String ipAddress, String userAgent) {
         String lockKey = "login:lock:" + username;
         String countStr = stringRedisTemplate.opsForValue().get(lockKey);
@@ -267,21 +258,16 @@ public class AuthController {
         count++;
 
         if (count >= maxRetryCount) {
-            // 锁定账号
             stringRedisTemplate.opsForValue().set(lockKey, String.valueOf(count), lockTimeMinutes, TimeUnit.MINUTES);
             log.warn("用户 {} 连续登录失败 {} 次，账号已锁定 {} 分钟，IP={}", username, count, lockTimeMinutes, ipAddress);
             saveLoginLog(username, ipAddress, userAgent, 0, "连续登录失败次数过多，账号已锁定");
         } else {
-            // 每次都更新值和过期时间
             stringRedisTemplate.opsForValue().set(lockKey, String.valueOf(count), 30, TimeUnit.MINUTES);
             log.warn("用户 {} 登录失败，第 {} 次，IP={}", username, count, ipAddress);
             saveLoginLog(username, ipAddress, userAgent, 0, "用户名或密码错误");
         }
     }
 
-    /**
-     * 保存登录日志
-     */
     private void saveLoginLog(String username, String ipAddress, String userAgent, int status, String message) {
         try {
             SysLoginLog loginLog = new SysLoginLog();

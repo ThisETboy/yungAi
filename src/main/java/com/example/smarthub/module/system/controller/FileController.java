@@ -8,6 +8,7 @@ import com.example.smarthub.module.system.service.FileService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -35,6 +36,7 @@ public class FileController {
      */
     @PostMapping("/upload")
     @Operation(summary = "上传文件")
+    @PreAuthorize("hasAuthority('sys:file:upload')")
     @OperateLog(title = "文件管理", businessType = BusinessType.INSERT)
     public R<SysFile> upload(@RequestParam("file") MultipartFile file) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();

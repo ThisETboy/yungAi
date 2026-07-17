@@ -27,13 +27,14 @@ public @interface OperateLog {
     OperatorType operatorType() default OperatorType.BACK_USER;
 
     enum BusinessType {
-        OTHER,    // 其他
-        INSERT,   // 新增
-        UPDATE,   // 修改
-        DELETE,   // 删除
-        IMPORT,   // 导入
-        EXPORT,   // 导出
-        GRANT     // 授权
+        OTHER,       // 其他
+        INSERT,      // 新增
+        UPDATE,      // 修改
+        DELETE,      // 删除
+        IMPORT,      // 导入
+        EXPORT,      // 导出
+        GRANT,       // 授权
+        FORCE_OFFLINE // 强制下线
     }
 
     enum OperatorType {

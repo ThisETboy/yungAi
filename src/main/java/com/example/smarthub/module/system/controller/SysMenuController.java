@@ -29,11 +29,12 @@ public class SysMenuController {
     private final SysMenuService menuService;
 
     /**
-     * 获取完整的菜单树（不分权限）
+     * 获取完整的菜单树（按当前用户权限过滤）
      * 用于前端初始化侧边栏菜单
      */
     @GetMapping("/tree")
     @Operation(summary = "菜单树")
+    @PreAuthorize("hasAuthority('sys:menu:list')")
     public R<List<MenuTreeNodeVO>> tree() {
         return R.ok(menuService.getMenuTree());
     }

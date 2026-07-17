@@ -38,13 +38,26 @@ public class JwtUtil {
     }
 
     /**
-     * 生成 Access Token
+     * 生成 Access Token（使用默认过期时间）
      * @param userId    用户ID
      * @param username  用户名
      * @param claims    额外自定义声明
      * @return JWT 字符串
      */
     public String generateToken(Long userId, String username, Map<String, Object> claims) {
+        return generateTokenWithTtl(userId, username, claims, expiration / 1000);
+    }
+
+    /**
+     * 生成 Access Token（自定义过期时间，单位：小时）
+     * @param userId    用户ID
+     * @param username  用户名
+     * @param claims    额外自定义声明
+     * @param ttlHours  过期时间（小时），默认 2
+     * @return JWT 字符串
+     */
+    public String generateTokenWithTtl(Long userId, String username, Map<String, Object> claims, long ttlHours) {
+        long ttlMillis = ttlHours * 3600_000L;
         Map<String, Object> allClaims = new HashMap<>();
         allClaims.putAll(claims);
         allClaims.put("userId", userId);
@@ -53,7 +66,7 @@ public class JwtUtil {
                 .claims(allClaims)
                 .subject(username)
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + expiration))
+                .expiration(new Date(System.currentTimeMillis() + ttlMillis))
                 .signWith(key)
                 .compact();
     }

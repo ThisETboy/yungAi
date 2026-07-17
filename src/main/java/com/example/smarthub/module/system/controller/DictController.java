@@ -90,6 +90,7 @@ public class DictController {
      */
     @GetMapping("/data/{dictType}")
     @Operation(summary = "根据字典类型查询数据")
+    @PreAuthorize("hasAuthority('sys:dict:data:list')")
     public R<List<DictData>> getDataByType(@PathVariable String dictType) {
         return R.ok(dictDataService.getByDictType(dictType));
     }

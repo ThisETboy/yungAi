@@ -15,9 +15,9 @@ export const useUserStore = defineStore('user', {
   }),
 
   actions: {
-    async login(username: string, password: string) {
+    async login(username: string, password: string, rememberMe = false) {
       try {
-        const res = await loginApi({ username, password })
+        const res = await loginApi({ username, password, rememberMe })
         this.token = res.accessToken
         this.refreshToken = res.refreshToken
         setToken(this.token)

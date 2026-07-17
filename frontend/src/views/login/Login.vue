@@ -10,6 +10,11 @@
           <el-input v-model="form.password" type="password" placeholder="密码" prefix-icon="Lock" show-password />
         </el-form-item>
         <el-form-item>
+          <div style="display:flex;justify-content:space-between;width:100%;align-items:center">
+            <el-checkbox v-model="form.rememberMe">记住我（7 天有效）</el-checkbox>
+          </div>
+        </el-form-item>
+        <el-form-item>
           <el-button type="primary" @click="handleLogin" style="width: 100%" :loading="loading">登 录</el-button>
         </el-form-item>
       </el-form>
@@ -31,6 +36,7 @@ const loading = ref(false)
 const form = reactive({
   username: '',
   password: '',
+  rememberMe: false,
 })
 
 const formRules: FormRules = {
@@ -51,7 +57,7 @@ async function handleLogin() {
 
   loading.value = true
   try {
-    const success = await userStore.login(form.username, form.password)
+    const success = await userStore.login(form.username, form.password, form.rememberMe)
     if (success) {
       ElMessage.success('登录成功')
       router.push('/')

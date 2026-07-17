@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia'
 import { getUserInfo, login as loginApi } from '@/api/auth'
-import { getToken, setToken, removeToken } from '@/utils/auth'
+import { getToken, setToken, getRefreshToken, setRefreshToken, clearAuth } from '@/utils/auth'
 import type { UserInfoFromAuth } from '@/types/api'
 
 export const useUserStore = defineStore('user', {
   state: () => ({
     token: getToken() || '',
+    refreshToken: getRefreshToken() || '',
     username: '',
     roles: [] as string[],
     permissions: [] as string[],
@@ -18,7 +19,9 @@ export const useUserStore = defineStore('user', {
       try {
         const res = await loginApi({ username, password })
         this.token = res.accessToken
+        this.refreshToken = res.refreshToken
         setToken(this.token)
+        setRefreshToken(this.refreshToken)
         return true
       } catch {
         return false
@@ -40,11 +43,12 @@ export const useUserStore = defineStore('user', {
 
     logout() {
       this.token = ''
+      this.refreshToken = ''
       this.username = ''
       this.roles = []
       this.permissions = []
       this.menus = []
-      removeToken()
+      clearAuth()
     },
   },
 })

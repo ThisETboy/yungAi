@@ -67,10 +67,14 @@ public class AuthController {
 
     @PostConstruct
     public void init() {
-        Set<String> keys = stringRedisTemplate.keys("login:lock:*");
-        if (keys != null && !keys.isEmpty()) {
-            stringRedisTemplate.delete(keys);
-            log.info("Cleared {} stale login lock keys on startup", keys.size());
+        try {
+            Set<String> keys = stringRedisTemplate.keys("login:lock:*");
+            if (keys != null && !keys.isEmpty()) {
+                stringRedisTemplate.delete(keys);
+                log.info("Cleared {} stale login lock keys on startup", keys.size());
+            }
+        } catch (Exception e) {
+            log.warn("Failed to clear stale login lock keys (Redis unavailable): {}", e.getMessage());
         }
     }
 

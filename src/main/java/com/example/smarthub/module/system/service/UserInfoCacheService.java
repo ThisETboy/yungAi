@@ -12,7 +12,9 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -84,19 +86,28 @@ public class UserInfoCacheService {
     }
 
     private List<UserInfoVO.MenuNode> convertMenus(List<SysMenu> menus) {
-        return menus.stream().map(m -> {
-            UserInfoVO.MenuNode node = new UserInfoVO.MenuNode();
-            node.setId(m.getId());
-            node.setParentId(m.getParentId());
-            node.setMenuType(m.getMenuType());
-            node.setMenuName(m.getMenuName());
-            node.setRoutePath(m.getRoutePath());
-            node.setComponent(m.getComponent());
-            node.setIcon(m.getIcon());
-            node.setSortOrder(m.getSortOrder());
-            node.setPerms(m.getPerms());
-            node.setVisible(m.getVisible());
-            return node;
-        }).collect(Collectors.toList());
+        return buildMenuTree(menus, 0L);
+    }
+
+    private List<UserInfoVO.MenuNode> buildMenuTree(List<SysMenu> menus, Long parentId) {
+        return menus.stream()
+                .filter(m -> m.getParentId().equals(parentId))
+                .sorted(java.util.Comparator.comparingInt(SysMenu::getSortOrder))
+                .map(m -> {
+                    UserInfoVO.MenuNode node = new UserInfoVO.MenuNode();
+                    node.setId(m.getId());
+                    node.setParentId(m.getParentId());
+                    node.setMenuType(m.getMenuType());
+                    node.setMenuName(m.getMenuName());
+                    node.setRoutePath(m.getRoutePath());
+                    node.setComponent(m.getComponent());
+                    node.setIcon(m.getIcon());
+                    node.setSortOrder(m.getSortOrder());
+                    node.setPerms(m.getPerms());
+                    node.setVisible(m.getVisible());
+                    node.setChildren(buildMenuTree(menus, m.getId()));
+                    return node;
+                })
+                .collect(Collectors.toList());
     }
 }

@@ -7,32 +7,34 @@
           <el-icon><HomeFilled /></el-icon>
           <span>首页</span>
         </el-menu-item>
-        <el-sub-menu index="system">
-          <template #title>
-            <el-icon><Setting /></el-icon>
-            <span>系统管理</span>
-          </template>
-          <el-menu-item index="/system/user">用户管理</el-menu-item>
-          <el-menu-item index="/system/role">角色管理</el-menu-item>
-          <el-menu-item index="/system/menu">菜单管理</el-menu-item>
-        </el-sub-menu>
-        <el-sub-menu index="ai">
-          <template #title>
-            <el-icon><MagicStick /></el-icon>
-            <span>AI 功能</span>
-          </template>
-          <el-menu-item index="/ai/chat">AI 聊天</el-menu-item>
-          <el-menu-item index="/ai/codegen">代码生成</el-menu-item>
-        </el-sub-menu>
-        <el-sub-menu index="protocol">
-          <template #title>
-            <el-icon><Connection /></el-icon>
-            <span>协议管理</span>
-          </template>
-          <el-menu-item index="/protocol">协议管理</el-menu-item>
-        </el-sub-menu>
+
+        <!-- 动态菜单 -->
+        <template v-for="menu in userStore.menus" :key="menu.id">
+          <!-- 一级菜单 -->
+          <el-sub-menu v-if="menu.menuType === 1 && menu.children?.length > 0" :index="String(menu.id)">
+            <template #title>
+              <el-icon><component :is="getIcon(menu.icon)" /></el-icon>
+              <span>{{ menu.menuName }}</span>
+            </template>
+            <el-menu-item
+              v-for="child in getVisibleChildren(menu)"
+              :key="child.id"
+              :index="child.routePath || String(child.id)"
+            >
+              <el-icon v-if="child.icon"><component :is="getIcon(child.icon)" /></el-icon>
+              <span>{{ child.menuName }}</span>
+            </el-menu-item>
+          </el-sub-menu>
+
+          <!-- 单独的一级菜单（无子菜单） -->
+          <el-menu-item v-else-if="menu.menuType === 1 && !menu.children?.length" :index="menu.routePath || String(menu.id)">
+            <el-icon v-if="menu.icon"><component :is="getIcon(menu.icon)" /></el-icon>
+            <span>{{ menu.menuName }}</span>
+          </el-menu-item>
+        </template>
       </el-menu>
     </el-aside>
+
     <el-container>
       <el-header style="display: flex; align-items: center; justify-content: space-between; background: #fff">
         <span>欢迎使用 smarthub AI 管理平台</span>
@@ -49,12 +51,44 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/store/user'
+import { HomeFilled, Setting, MagicStick, Connection, User, Monitor, FolderOpened, Collection, Document, Refresh, Timer, ChatDotRound, Link, DataLine, UserFilled, Cpu, Avatar, TrendCharts } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
 const activeMenu = computed(() => route.path)
+
+const iconMap: Record<string, any> = {
+  'setting': Setting,
+  'magic': MagicStick,
+  'connection': Connection,
+  'user': User,
+  'monitor': Monitor,
+  'folder-opened': FolderOpened,
+  'collection': Collection,
+  'document': Document,
+  'refresh': Refresh,
+  'time': Timer,
+  'chat': ChatDotRound,
+  'code': Cpu,
+  'role': Avatar,
+  'link': Link,
+  'menu': TrendCharts,
+  'user-filled': UserFilled,
+  'chart': TrendCharts,
+  'data-line': DataLine,
+}
+
+function getIcon(icon: string | undefined): any {
+  if (!icon) return null
+  return iconMap[icon] || null
+}
+
+function getVisibleChildren(menu: any): any[] {
+  if (!menu.children) return []
+  return menu.children.filter((child: any) => child.menuType === 2)
+}
 
 function handleLogout() {
   userStore.logout()

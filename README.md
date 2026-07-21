@@ -1,6 +1,6 @@
 # SmartHub — 企业级 AI 智能管理平台
 
-> 基于 Spring Boot 3.4 + Vue 3 的全栈智能管理平台，集成多 AI 提供商、IoT 设备协议适配、动态 RBAC 权限管理。
+> 基于 Spring Boot 3.4 + Vue 3 的全栈智能管理平台，集成多 AI 提供商、IoT 设备协议适配、动态 RBAC 权限管理、词云可视化。
 
 ## 📋 目录
 
@@ -13,7 +13,9 @@
 - [模块说明](#模块说明)
 - [配置说明](#配置说明)
 - [日志说明](#日志说明)
+- [CORS 跨域配置](#cors-跨域配置)
 - [Docker 部署](#docker-部署)
+- [常见问题](#常见问题)
 - [更新日志](#更新日志)
 
 ## 技术栈
@@ -81,7 +83,7 @@ smarthub/
 │   │   └── SwaggerConfig.java     # API 文档分组
 │   ├── module/
 │   │   ├── system/                # 系统模块（RBAC）
-│   │   │   ├── controller/        # Auth / User / Role / Menu
+│   │   │   ├── controller/        # Auth / User / Role / Menu / Profile / Cache / Config / Dict / File / OperLog / LoginLog
 │   │   │   ├── service/           # 业务逻辑
 │   │   │   ├── entity/            # 数据库实体
 │   │   │   ├── dto/               # 请求数据传输对象
@@ -94,7 +96,7 @@ smarthub/
 │   │   │   │   ├── AnthropicAiAdapter.java
 │   │   │   │   └── DeepSeekAiAdapter.java
 │   │   │   ├── controller/        # AiChatController
-│   │   │   ├── service/           # AiChatService
+│   │   │   ├── service/           # AiChatService + KeywordExtractionService
 │   │   │   ├── entity/            # Conversation / Message / ModelConfig
 │   │   │   ├── dto/               # ChatRequest
 │   │   │   └── mapper/
@@ -102,11 +104,18 @@ smarthub/
 │   │   │   ├── adapter/           # MQTT / TCP 适配器
 │   │   │   ├── controller/        # ProtocolController
 │   │   │   └── service/           # ProtocolService
-│   │   └── monitor/               # 监控模块
-│   │       ├── aspect/RequestLogAspect.java  # 请求日志 AOP 切面
-│   │       ├── entity/RequestLog.java
-│   │       ├── mapper/RequestLogMapper.java
-│   │       └── service/RequestLogService.java
+│   │   ├── monitor/               # 监控模块
+│   │   │   ├── aspect/RequestLogAspect.java  # 请求日志 AOP 切面
+│   │   │   ├── entity/RequestLog.java
+│   │   │   ├── mapper/RequestLogMapper.java
+│   │   │   └── service/RequestLogService.java
+│   │   └── cloud/                 # 词云模块（DDD 分层）
+│   │       ├── controller/        # SysWordCloudController / AiKeywordController
+│   │       ├── service/           # SysWordCloudService / impl
+│   │       ├── entity/            # SysWordCloud.java
+│   │       ├── mapper/            # SysWordCloudMapper.java
+│   │       ├── vo/                # WordCloudVO.java
+│   │       └── dto/               # WordCloudRequest.java
 │   └── SmarthubApplication.java   # 应用入口
 ├── src/main/resources/
 │   ├── application.yml            # 全局配置（入口）
@@ -115,22 +124,43 @@ smarthub/
 │   ├── application-prod.yml       # 生产环境配置
 │   ├── logback-spring.xml         # 日志配置（分模块/分环境）
 │   └── db/
-│       ├── V1__init_schema.sql    # 数据库建表
+│       ├── V1__init_schema.sql    # 基础表结构
 │       ├── V2__init_data.sql      # 种子数据
-│       └── V3__create_request_log.sql  # 请求日志表
-│       └── V4__add_new_permissions.sql  # 新增权限菜单
+│       ├── V3__create_request_log.sql  # 请求日志表
+│       ├── V4__add_new_permissions.sql  # 新增权限菜单
+│       ├── V5__create_dict_tables.sql   # 数据字典
+│       ├── V6__create_oper_log.sql        # 操作日志
+│       ├── V7__create_sys_file.sql        # 文件信息
+│       ├── V8__create_sys_config.sql      # 系统配置
+│       ├── V9__create_login_log.sql       # 登录日志
+│       ├── V10__fix_missing_menus.sql     # 补全菜单配置
+│       └── V11__create_word_cloud.sql     # 词云功能
 └── frontend/                      # Vue 3 前端
     ├── src/
     │   ├── api/                   # Axios 封装 + 接口调用
+    │   │   ├── cloud.ts           # 词云 API
+    │   │   └── request.ts         # Axios 实例封装
     │   ├── router/                # 静态路由 + 动态路由
+    │   │   ├── index.ts           # 静态路由
+    │   │   └── dynamic.ts         # 动态路由组件映射
     │   ├── store/                 # Pinia 状态管理
     │   ├── views/                 # 页面组件
     │   │   ├── login/             # 登录页
     │   │   ├── dashboard/         # 仪表盘
     │   │   ├── system/            # 系统管理（用户/角色/菜单）
-    │   │   └── ai/                # AI 功能（聊天/代码生成）
+    │   │   ├── ai/                # AI 功能（聊天/代码生成）
+    │   │   ├── cloud/             # 词云中心
+    │   │   ├── dict/              # 数据字典
+    │   │   ├── profile/           # 个人中心
+    │   │   ├── files/             # 文件管理
+    │   │   ├── config/            # 系统配置
+    │   │   ├── cache/             # 缓存管理
+    │   │   ├── oper-log/          # 操作日志
+    │   │   └── login-log/         # 登录日志
     │   ├── layouts/               # 布局组件
-    │   └── types/                 # TypeScript 类型定义
+    │   ├── types/                 # TypeScript 类型定义
+    │   │   └── cloud.ts           # 词云类型
+    │   └── components/            # 公共组件
     └── vite.config.ts             # Vite 配置
 ```
 
@@ -422,9 +452,12 @@ mysql -u root -p < src/main/resources/db/V9__create_login_log.sql
 
 # 10. 补全缺失菜单（数据字典、操作日志、文件管理、系统配置、缓存管理、登录日志、个人中心）
 mysql -u root -p < src/main/resources/db/V10__fix_missing_menus.sql
+
+# 11. 词云功能（sys_word_cloud 表 + 种子数据 + 菜单/权限）
+mysql -u root -p < src/main/resources/db/V11__create_word_cloud.sql
 ```
 
-### 数据库表清单
+### 数据库表清单（16张）
 
 | 表名 | 说明 |
 |------|------|
@@ -437,12 +470,13 @@ mysql -u root -p < src/main/resources/db/V10__fix_missing_menus.sql
 | `ai_conversation` | AI 会话 |
 | `ai_message` | AI 消息 |
 | `request_log` | 请求日志 |
-| `ai_model_config` | AI 模型配置 |
 | `sys_dict_type` | 字典类型 |
 | `sys_dict_data` | 字典数据 |
 | `oper_log` | 操作日志 |
 | `sys_file` | 文件信息 |
 | `sys_config` | 系统配置 |
+| `sys_login_log` | 登录日志 |
+| `sys_word_cloud` | 词云热词 |
 
 ## API 文档
 
@@ -451,7 +485,7 @@ mysql -u root -p < src/main/resources/db/V10__fix_missing_menus.sql
 - **Knife4j 增强文档**: http://localhost:8080/doc.html
 - **Swagger UI**: http://localhost:8080/swagger-ui.html
 
-API 按模块分为 6 组：认证管理、用户管理、角色管理、菜单管理、AI 功能、协议管理。
+API 按模块分为 8 组：认证管理、用户管理、角色管理、菜单管理、AI 功能、协议管理、词云中心、系统管理（字典/文件/配置/缓存/操作日志/登录日志）。
 
 ## 模块说明
 
@@ -496,6 +530,18 @@ ProtocolAdapter (接口)
 - 异步写入数据库，不阻塞业务
 - 独立日志文件 `request.log`
 
+### 词云模块（cloud）
+
+采用 DDD 分层架构：Entity → Mapper → Service → Controller
+
+- **SysWordCloudController**: 词云 CRUD + 分类查询 + 分页搜索
+- **AiKeywordController**: AI 关键词提取，复用 LLM Adapter
+- **KeywordExtractionService**: 基于 AiModelAdapter 调用 LLM 提取关键词
+- **菜单结构**: 词云中心(id=80) → 词云展示(id=81)，按钮权限 800-803
+- **种子数据**: 科技/娱乐/体育/财经各 8 条，共 32 条热词
+- **前端**: ECharts wordCloud 图表 + 管理表格 + AI 提取对话框
+- **依赖**: echarts + echarts-wordcloud
+
 ### 新增权限标识
 
 | 权限标识 | 说明 | 对应接口 |
@@ -521,6 +567,14 @@ ProtocolAdapter (接口)
 | `sys:cache:list` | 缓存查看 | GET /api/cache/* |
 | `sys:cache:delete` | 缓存删除 | DELETE /api/cache/* |
 | `sys:file:upload` | 文件上传 | POST /api/files/upload |
+| `sys:file:list` | 文件列表 | GET /api/files/list |
+| `sys:loginlog:list` | 登录日志查看 | GET /api/login-log |
+| `sys:loginlog:delete` | 登录日志删除 | DELETE /api/login-log/{id} |
+| `sys:cloud:list` | 词云查看 | GET /api/cloud/words, /api/cloud/categories |
+| `sys:cloud:add` | 词云新增 | POST /api/cloud/words |
+| `sys:cloud:edit` | 词云编辑 | PUT /api/cloud/words/{id} |
+| `sys:cloud:delete` | 词云删除 | DELETE /api/cloud/words/{id} |
+| `sys:cloud:ai` | AI 关键词提取 | POST /api/cloud/ai-extract |
 
 ### 限流模块
 
@@ -550,6 +604,7 @@ ProtocolAdapter (接口)
 | 文件管理 | `/files` | `POST /api/files/upload` | 文件上传 + 下载预览 |
 | 系统配置 | `/config` | `GET/POST/DELETE /api/config` | 运行时配置管理 |
 | 缓存管理 | `/cache` | `GET/DELETE /api/cache/*` | Redis 缓存可视化管理 |
+| 词云中心 | `/wordcloud` | `GET/POST/PUT/DELETE /api/cloud/*`, `POST /api/cloud/ai-extract` | ECharts 词云可视化 + AI 关键词提取 + 热词管理 |
 
 ## 配置说明
 
@@ -575,6 +630,18 @@ ai:
     ollama: qwen2.5:7b
     anthropic: claude-sonnet-4-20250514
 ```
+
+## CORS 跨域配置
+
+Spring Security 已配置 CORS，允许以下前端开发服务器跨域访问：
+
+| 来源 | 端口 | 用途 |
+|------|------|------|
+| `http://localhost:5173` | 5173 | Vite 默认开发服务器 |
+| `http://localhost:5174` | 5174 | Vite 热更新备用端口 |
+| `http://localhost:3000` | 3000 | 其他前端开发服务器 |
+
+如需添加新的允许源，修改 `SecurityConfig.java` 中 `corsConfigurationSource()` 的 `setAllowedOrigins()`。
 
 ## 日志说明
 
@@ -653,3 +720,30 @@ MIT
 - 文件上传下载 — 本地磁盘存储，支持拖拽上传、预览、下载
 - 系统配置管理 — 运行时配置 CRUD，支持 Redis 缓存、热更新
 - 缓存管理 — Redis 可视化管理，支持 Key 查询、查看、删除、清空
+
+### v0.4.0 — 2026-07-20
+
+**新增功能**
+- 词云中心模块 — ECharts wordCloud 可视化 + 热词管理 + AI 关键词提取
+- 数据库迁移 V11：sys_word_cloud 表 + 32 条种子数据（科技/娱乐/体育/财经各 8 条）
+- 菜单/权限：词云中心(id=80) → 词云展示(id=81)，按钮权限 800-803
+
+**安全修复**
+- CORS 放行 localhost:5174（前端开发端口）
+- 登录密码重置为 BCrypt(admin123)
+
+**架构优化**
+- 后端菜单数据修复为树形结构
+- Redis 序列化不一致修复（redisTemplate → stringRedisTemplate）
+- 所有 Controller 补全 @PreAuthorize 权限注解
+
+**数据库变更**
+- 新增 sys_word_cloud 表（16张表）
+- 新增 V10__fix_missing_menus.sql 补全菜单配置
+- 新增 V11__create_word_cloud.sql 词云功能
+
+**前端变更**
+- 新增 WordCloudView.vue（ECharts wordCloud 图表 + 管理表格 + AI 提取对话框）
+- 新增 cloud.ts API 模块和 cloud.ts 类型定义
+- 动态路由 dynamic.ts 注册词云组件
+- package.json 新增 echarts + echarts-wordcloud 依赖

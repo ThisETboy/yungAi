@@ -5,7 +5,7 @@ USE `smarthub`;
 
 -- 管理员用户 (密码: admin123, BCrypt加密)
 INSERT INTO `sys_user` (`id`, `username`, `password`, `nickname`, `email`, `status`) VALUES
-(1, 'admin', '$2a$10$beLIpcEaiTry8scxEMfvtuibSNa0FWfcKqscglw59uSFSHa29XiCO', '超级管理员', 'admin@example.com', 1);
+(1, 'admin', '$2b$10$yINKJTI6CI0YBfWGAwNMs.BEUcfLdUMa51QpO6oJIW2w50rm3CFJm', '超级管理员', 'admin@example.com', 1);
 
 -- 普通用户 (密码: user123)
 INSERT INTO `sys_user` (`id`, `username`, `password`, `nickname`, `email`, `status`) VALUES

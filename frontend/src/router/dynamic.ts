@@ -33,6 +33,8 @@ const componentMap: Record<string, () => Promise<any>> = {
   'system/loginlog/LoginLogManage': () => import('@/views/system/loginlog/LoginLogManage.vue'),
   // 个人中心
   'profile/ProfileView': () => import('@/views/profile/ProfileView.vue'),
+  // 词云中心
+  'cloud/WordCloudView': () => import('@/views/cloud/WordCloudView.vue'),
 }
 
 /**

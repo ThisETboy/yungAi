@@ -14,9 +14,11 @@ public interface SysWordCloudService {
     /**
      * 获取词云数据（用于前端渲染）
      * @param category 分类过滤（可选）
+     * @param startDate 开始日期（可选，格式 yyyy-MM-dd）
+     * @param endDate 结束日期（可选，格式 yyyy-MM-dd）
      * @return 词云数据列表
      */
-    List<WordCloudVO> getWordCloudList(String category);
+    List<WordCloudVO> getWordCloudList(String category, String startDate, String endDate);
 
     /**
      * 获取所有分类列表

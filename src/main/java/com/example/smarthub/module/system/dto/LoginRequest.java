@@ -22,4 +22,10 @@ public class LoginRequest {
 
     @Schema(description = "记住我（使用长期 Token，7 天有效期）", example = "false")
     private Boolean rememberMe = false;
+
+    @NotBlank(message = "验证码不能为空")
+    private String captchaCode;
+
+    @Schema(description = "验证码 UUID", example = "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+    private String captchaUuid;
 }

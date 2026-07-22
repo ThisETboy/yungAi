@@ -15,9 +15,9 @@ export const useUserStore = defineStore('user', {
   }),
 
   actions: {
-    async login(username: string, password: string, rememberMe = false) {
+    async login(username: string, password: string, rememberMe = false, captchaUuid?: string, captchaCode?: string) {
       try {
-        const res = await loginApi({ username, password, rememberMe })
+        const res = await loginApi({ username, password, rememberMe, captchaUuid, captchaCode })
         this.token = res.accessToken
         this.refreshToken = res.refreshToken
         setToken(this.token)

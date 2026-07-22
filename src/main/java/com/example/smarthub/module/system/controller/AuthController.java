@@ -9,11 +9,13 @@ import com.example.smarthub.module.system.entity.SysLoginLog;
 import com.example.smarthub.module.system.entity.SysMenu;
 import com.example.smarthub.module.system.entity.SysUser;
 import com.example.smarthub.module.system.mapper.SysRoleMapper;
+import com.example.smarthub.module.system.service.CaptchaService;
 import com.example.smarthub.module.system.service.TokenBlacklistService;
 import com.example.smarthub.module.system.service.OnlineUserService;
 import com.example.smarthub.module.system.service.SysLoginLogService;
 import com.example.smarthub.module.system.service.SysUserService;
 import com.example.smarthub.module.system.service.UserInfoCacheService;
+import com.example.smarthub.module.system.vo.CaptchaVO;
 import com.example.smarthub.module.system.vo.UserInfoVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -58,6 +60,7 @@ public class AuthController {
     private final TokenBlacklistService tokenBlacklistService;
     private final OnlineUserService onlineUserService;
     private final UserInfoCacheService userInfoCacheService;
+    private final CaptchaService captchaService;
 
     @Value("${sys.login.maxRetryCount:5}")
     private int maxRetryCount;
@@ -79,11 +82,21 @@ public class AuthController {
     }
 
     /**
+     * 获取验证码
+     */
+    @GetMapping("/captcha")
+    @Operation(summary = "获取验证码")
+    public R<CaptchaVO> captcha() {
+        return R.ok(captchaService.generateCaptcha());
+    }
+
+    /**
      * 用户登录
-     * 1. 检查账号锁定
-     * 2. 认证
-     * 3. 生成 Token（支持记住我长期 Token）
-     * 4. 记录在线用户 + 登录日志
+     * 1. 校验验证码
+     * 2. 检查账号锁定
+     * 3. 认证
+     * 4. 生成 Token（支持记住我长期 Token）
+     * 5. 记录在线用户 + 登录日志
      */
     @PostMapping("/login")
     @Operation(summary = "用户登录")
@@ -93,7 +106,14 @@ public class AuthController {
         String ipAddress = getClientIp(httpRequest);
         String userAgent = httpRequest.getHeader("User-Agent");
 
-        // 1. 检查账号是否被锁定
+        // 1. 校验验证码
+        boolean captchaValid = captchaService.verifyCaptcha(request.getCaptchaUuid(), request.getCaptchaCode());
+        if (!captchaValid) {
+            saveLoginLog(username, ipAddress, userAgent, 0, "验证码错误或已过期");
+            return R.fail(400, "验证码错误或已过期，请重新获取");
+        }
+
+        // 2. 检查账号是否被锁定
         String lockKey = "login:lock:" + username;
         String lockCount = stringRedisTemplate.opsForValue().get(lockKey);
         if (lockCount != null) {
@@ -109,7 +129,7 @@ public class AuthController {
             Authentication authentication = authenticationProvider.authenticate(authToken);
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            // 2. 登录成功：清除失败计数，生成 Token
+            // 3. 登录成功：清除失败计数，生成 Token
             stringRedisTemplate.delete(lockKey);
             SysUser currentUser = sysUserService.findByUsername(username);
             Long userId = currentUser.getId();
@@ -119,10 +139,10 @@ public class AuthController {
             String accessToken = jwtUtil.generateTokenWithTtl(userId, username, Map.of(), rememberMe ? 7 : 2);
             String refreshToken = jwtUtil.generateRefreshToken(username);
 
-            // 3. 记录在线用户
+            // 4. 记录在线用户
             onlineUserService.recordOnline(userId, username, accessToken);
 
-            // 4. 记录登录日志
+            // 5. 记录登录日志
             saveLoginLog(username, ipAddress, userAgent, 1, "登录成功" + (rememberMe ? "（记住我）" : ""));
 
             return R.ok(LoginResponse.builder()

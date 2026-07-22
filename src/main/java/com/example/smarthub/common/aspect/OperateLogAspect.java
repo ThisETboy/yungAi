@@ -3,6 +3,7 @@ package com.example.smarthub.common.aspect;
 import com.example.smarthub.common.annotation.OperateLog;
 import com.example.smarthub.module.system.entity.OperLog;
 import com.example.smarthub.module.system.mapper.OperLogMapper;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -12,6 +13,8 @@ import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -67,11 +70,34 @@ public class OperateLogAspect {
             throw e;
         } finally {
             long elapsed = System.currentTimeMillis() - startTime;
-            operLog.setOperIp("0:0:0:0:0:0:0:1"); // TODO: 从请求中获取真实IP
+            operLog.setOperIp(getClientIp());
             operLog.setJsonResult(String.valueOf(result));
             // 异步保存日志
             saveLogAsync(operLog);
         }
+    }
+
+    /** 从当前请求上下文中获取 HttpServletRequest */
+    private HttpServletRequest getRequest() {
+        ServletRequestAttributes attrs =
+                (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        return attrs != null ? attrs.getRequest() : null;
+    }
+
+    /** 获取客户端 IP 地址（支持代理） */
+    private String getClientIp() {
+        HttpServletRequest request = getRequest();
+        if (request == null) return "unknown";
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip)) {
+            // X-Forwarded-For 可能包含多个 IP，取第一个
+            return ip.split(",")[0].trim();
+        }
+        ip = request.getHeader("X-Real-IP");
+        if (ip != null && !ip.isEmpty()) {
+            return ip;
+        }
+        return request.getRemoteAddr();
     }
 
     /**

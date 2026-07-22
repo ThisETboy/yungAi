@@ -1,5 +1,8 @@
 package com.example.smarthub.module.system.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.smarthub.common.exception.BizException;
 import com.example.smarthub.module.system.entity.SysFile;
 import com.example.smarthub.module.system.mapper.SysFileMapper;
@@ -82,6 +85,15 @@ public class FileServiceImpl implements FileService {
         sysFileMapper.insert(sysFile);
 
         return sysFile;
+    }
+
+    @Override
+    public IPage<SysFile> listFiles(int current, int size, String keyword) {
+        Page<SysFile> page = new Page<>(current, size);
+        LambdaQueryWrapper<SysFile> wrapper = new LambdaQueryWrapper<>();
+        wrapper.like(keyword != null && !keyword.isEmpty(), SysFile::getFileName, keyword)
+               .orderByDesc(SysFile::getCreateTime);
+        return sysFileMapper.selectPage(page, wrapper);
     }
 
     @Override

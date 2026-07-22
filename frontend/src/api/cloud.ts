@@ -1,7 +1,7 @@
 import request from './request'
 
-export function getWordCloud(category?: string) {
-  return request.get('/cloud/words', { params: { category } })
+export function getWordCloud(category?: string, startDate?: string, endDate?: string) {
+  return request.get('/cloud/words', { params: { category, startDate, endDate } })
 }
 
 export function getCategories() {

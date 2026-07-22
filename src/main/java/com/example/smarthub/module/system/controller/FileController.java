@@ -1,5 +1,6 @@
 package com.example.smarthub.module.system.controller;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.example.smarthub.common.annotation.OperateLog;
 import com.example.smarthub.common.annotation.OperateLog.BusinessType;
 import com.example.smarthub.common.response.R;
@@ -46,12 +47,24 @@ public class FileController {
     }
 
     /**
+     * 分页查询文件列表
+     */
+    @GetMapping("/list")
+    @Operation(summary = "文件列表")
+    @PreAuthorize("hasAuthority('sys:file:list')")
+    public R<IPage<SysFile>> listFiles(
+            @RequestParam(defaultValue = "1") int current,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String keyword) {
+        return R.ok(fileService.listFiles(current, size, keyword));
+    }
+
+    /**
      * 下载/预览文件
      */
     @GetMapping(value = "/**", produces = "application/octet-stream")
     @Operation(summary = "下载/预览文件")
     public void download(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        // 从 request URI 中提取文件路径
         String uri = request.getRequestURI();
         String contextPath = request.getContextPath();
         String fileRelativePath = uri.substring(contextPath.length() + "/api/files".length() + 1);
@@ -66,12 +79,10 @@ public class FileController {
             return;
         }
 
-        // 设置 MIME 类型
         String contentType = java.nio.file.Files.probeContentType(file.toPath());
         if (contentType == null) contentType = "application/octet-stream";
         response.setContentType(contentType);
 
-        // 下载文件名
         String fileName = file.getName();
         response.setHeader("Content-Disposition", "attachment;filename=" + java.net.URLEncoder.encode(fileName, "UTF-8"));
         response.setContentLengthLong(file.length());

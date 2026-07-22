@@ -28,12 +28,18 @@ public class SysWordCloudController {
 
     /**
      * 获取词云数据（用于前端渲染）
+     * @param category 分类过滤（可选）
+     * @param startDate 开始日期（可选，格式 yyyy-MM-dd）
+     * @param endDate 结束日期（可选，格式 yyyy-MM-dd）
      */
     @GetMapping("/words")
     @Operation(summary = "获取词云数据")
     @PreAuthorize("hasAuthority('sys:cloud:list')")
-    public R<List<WordCloudVO>> getWordCloudList(@RequestParam(required = false) String category) {
-        return R.ok(sysWordCloudService.getWordCloudList(category));
+    public R<List<WordCloudVO>> getWordCloudList(
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        return R.ok(sysWordCloudService.getWordCloudList(category, startDate, endDate));
     }
 
     /**

@@ -53,6 +53,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { UploadFilled } from '@element-plus/icons-vue'
+import { getFileList } from '@/api/file'
 
 const fileList = ref<any[]>([])
 const loading = ref(false)
@@ -76,8 +77,20 @@ function formatSize(bytes: number): string {
   return size.toFixed(1) + ' ' + units[i]
 }
 
+async function loadFileList() {
+  loading.value = true
+  try {
+    const res = await getFileList({ current: 1, size: 10 })
+    fileList.value = res.records || []
+  } catch (err) {
+    ElMessage.error('加载文件列表失败')
+  } finally {
+    loading.value = false
+  }
+}
+
 onMounted(() => {
-  // 暂无文件列表查询接口，后续可补充
+  loadFileList()
 })
 
 async function handleUpload(file: any) {
@@ -97,7 +110,7 @@ async function handleUpload(file: any) {
     }
     await res.json()
     ElMessage.success('上传成功')
-    // TODO: 刷新文件列表
+    loadFileList()
   } catch (err: any) {
     ElMessage.error(err.message || '上传失败')
   } finally {

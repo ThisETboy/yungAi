@@ -13,6 +13,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -27,11 +31,30 @@ public class SysWordCloudServiceImpl implements SysWordCloudService {
     private final SysWordCloudMapper sysWordCloudMapper;
 
     @Override
-    public List<WordCloudVO> getWordCloudList(String category) {
+    public List<WordCloudVO> getWordCloudList(String category, String startDate, String endDate) {
         LambdaQueryWrapper<SysWordCloud> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SysWordCloud::getStatus, 1)
-               .eq(category != null && !category.isEmpty(), SysWordCloud::getCategory, category)
-               .orderByDesc(SysWordCloud::getPopularity);
+               .eq(category != null && !category.isEmpty(), SysWordCloud::getCategory, category);
+
+        if (startDate != null && !startDate.isEmpty()) {
+            try {
+                LocalDateTime start = LocalDateTime.parse(startDate + "T00:00:00", DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                wrapper.ge(SysWordCloud::getCreateTime, start);
+            } catch (Exception e) {
+                log.warn("Invalid startDate format: {}", startDate);
+            }
+        }
+
+        if (endDate != null && !endDate.isEmpty()) {
+            try {
+                LocalDateTime end = LocalDateTime.parse(endDate + "T23:59:59", DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                wrapper.le(SysWordCloud::getCreateTime, end);
+            } catch (Exception e) {
+                log.warn("Invalid endDate format: {}", endDate);
+            }
+        }
+
+        wrapper.orderByDesc(SysWordCloud::getPopularity);
         return convertToVO(sysWordCloudMapper.selectList(wrapper));
     }
 

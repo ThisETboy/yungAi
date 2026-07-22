@@ -2,6 +2,13 @@ export interface LoginRequest {
   username: string
   password: string
   rememberMe?: boolean
+  captchaUuid?: string
+  captchaCode?: string
+}
+
+export interface CaptchaResponse {
+  uuid: string
+  image: string
 }
 
 export interface LoginResponse {

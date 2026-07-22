@@ -9,6 +9,25 @@
         <el-form-item prop="password">
           <el-input v-model="form.password" type="password" placeholder="密码" prefix-icon="Lock" show-password />
         </el-form-item>
+        <el-form-item prop="captchaCode">
+          <div style="display: flex; gap: 10px; align-items: center; width: 100%">
+            <el-input
+              v-model="form.captchaCode"
+              placeholder="验证码"
+              prefix-icon="Key"
+              clearable
+              style="flex: 1"
+              @keyup.enter="handleLogin"
+            />
+            <img
+              :src="captchaImage"
+              alt="验证码"
+              style="width: 120px; height: 40px; cursor: pointer; border-radius: 4px; border: 1px solid #dcdfe6"
+              @click="refreshCaptcha"
+              title="点击刷新验证码"
+            />
+          </div>
+        </el-form-item>
         <el-form-item>
           <div style="display:flex;justify-content:space-between;width:100%;align-items:center">
             <el-checkbox v-model="form.rememberMe">记住我（7 天有效）</el-checkbox>
@@ -23,19 +42,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { getCaptcha } from '@/api/auth'
 import { useUserStore } from '@/store/user'
 
 const router = useRouter()
 const userStore = useUserStore()
 const formRef = ref<FormInstance>()
 const loading = ref(false)
+const captchaImage = ref('')
+const captchaUuid = ref('')
 
 const form = reactive({
   username: '',
   password: '',
+  captchaCode: '',
   rememberMe: false,
 })
 
@@ -48,6 +71,21 @@ const formRules: FormRules = {
     { required: true, message: '请输入密码', trigger: 'blur' },
     { min: 6, max: 50, message: '密码长度不能少于 6 个字符', trigger: 'blur' },
   ],
+  captchaCode: [
+    { required: true, message: '请输入验证码', trigger: 'blur' },
+    { len: 4, message: '验证码为 4 位字符', trigger: 'blur' },
+  ],
+}
+
+async function refreshCaptcha() {
+  try {
+    const res = await getCaptcha()
+    captchaImage.value = res.image
+    captchaUuid.value = res.uuid
+    form.captchaCode = ''
+  } catch (error) {
+    ElMessage.error('验证码加载失败')
+  }
 }
 
 async function handleLogin() {
@@ -57,17 +95,28 @@ async function handleLogin() {
 
   loading.value = true
   try {
-    const success = await userStore.login(form.username, form.password, form.rememberMe)
+    const success = await userStore.login(
+      form.username,
+      form.password,
+      form.rememberMe,
+      captchaUuid.value,
+      form.captchaCode,
+    )
     if (success) {
       ElMessage.success('登录成功')
       router.push('/')
     } else {
       ElMessage.error('用户名或密码错误')
+      refreshCaptcha()
     }
   } finally {
     loading.value = false
   }
 }
+
+onMounted(() => {
+  refreshCaptcha()
+})
 </script>
 
 <style scoped>

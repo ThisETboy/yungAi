@@ -204,8 +204,9 @@ onUnmounted(() => {
 async function fetchData() {
   loading.value = true
   try {
+    const [startDate, endDate] = formatDateRange(dateRange.value)
     const [words, cats] = await Promise.all([
-      getWordCloud(selectedCategory.value),
+      getWordCloud(selectedCategory.value, startDate, endDate),
       getCategories(),
     ])
     wordList.value = words || []
@@ -216,6 +217,14 @@ async function fetchData() {
   } finally {
     loading.value = false
   }
+}
+
+// 将日期范围转换为 yyyy-MM-dd 格式
+function formatDateRange(range: [Date, Date] | null): [string | undefined, string | undefined] {
+  if (!range || !range[0] || !range[1]) return [undefined, undefined]
+  const start = range[0].toISOString().split('T')[0]
+  const end = range[1].toISOString().split('T')[0]
+  return [start, end]
 }
 
 // ---- 图表初始化 ----
@@ -319,7 +328,6 @@ function handleCategoryChange() {
 }
 
 function handleTimeChange() {
-  // TODO: 实现时间范围筛选逻辑
   fetchData()
 }
 
@@ -418,7 +426,7 @@ async function handleAiExtract() {
 function addExtractedKeyword(item: any) {
   const newWord = {
     word: item.word,
-    category: '科技', // TODO: 让用户选择分类
+    category: categories.value.length > 0 ? categories.value[0] : '科技',
     popularity: item.popularity,
     source: 1,
   }

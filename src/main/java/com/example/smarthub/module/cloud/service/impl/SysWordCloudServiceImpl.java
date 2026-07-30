@@ -10,6 +10,7 @@ import com.example.smarthub.module.cloud.mapper.SysWordCloudMapper;
 import com.example.smarthub.module.cloud.service.SysWordCloudService;
 import com.example.smarthub.module.cloud.vo.WordCloudVO;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
 /**
  * 词云服务实现
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SysWordCloudServiceImpl implements SysWordCloudService {
